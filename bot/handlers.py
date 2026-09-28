@@ -5,6 +5,7 @@ import logging
 from html import escape
 
 from aiogram import Bot, F, Router
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup, Message
 
@@ -35,11 +36,11 @@ def build_router(owner_id: int) -> Router:
 
     @router.message(F.voice)
     async def on_voice(message: Message, bot: Bot, ai: AIClient) -> None:
-        audio = await bot.download(message.voice)
         try:
+            audio = await bot.download(message.voice)
             text = await ai.transcribe(audio.read(), fmt="ogg")
-        except AIError as exc:
-            log.warning("Transkripsiya xatosi: %s", exc)
+        except Exception as exc:  # noqa: BLE001 — egasi javobsiz qolmasin
+            log.warning("Ovozli xabar qayta ishlanmadi: %s", exc)
             await message.answer(uz.VOICE_ERROR)
             return
         await _process(message, text, ai)
@@ -51,15 +52,35 @@ def build_router(owner_id: int) -> Router:
     @router.callback_query(F.data.startswith(DONE_PREFIX))
     async def on_done(callback: CallbackQuery) -> None:
         task_id = parse_done(callback.data)
-        ok = task_id is not None and await db.mark_done(task_id)
-        await callback.answer(uz.TASK_DONE_TOAST if ok else uz.TASK_NOT_FOUND_TOAST)
-        tasks = await db.list_open_tasks()
-        await callback.message.edit_text(views.format_task_list(tasks), reply_markup=list_markup(tasks))
+        answered = False
+        try:
+            ok = task_id is not None and await db.mark_done(task_id)
+            await callback.answer(uz.TASK_DONE_TOAST if ok else uz.TASK_NOT_FOUND_TOAST)
+            answered = True
+            if not isinstance(callback.message, Message):
+                return
+            tasks = await db.list_open_tasks()
+            await callback.message.edit_text(views.format_task_list(tasks), reply_markup=list_markup(tasks))
+        except TelegramBadRequest as exc:
+            # Ikki marta bosilsa matn o'zgarmaydi — Telegram "message is not modified" qaytaradi.
+            log.info("Ro'yxat yangilanmadi: %s", exc)
+        except Exception:
+            log.exception("Vazifani yopishda xato")
+            # Telegram har bir bosishga faqat bir marta javob berishga ruxsat beradi.
+            if not answered:
+                await callback.answer(uz.AI_ERROR, show_alert=True)
 
     @router.callback_query(F.data == SPEAK_LIST)
     async def on_speak_list(callback: CallbackQuery, ai: AIClient) -> None:
         await callback.answer()
-        tasks = await db.list_open_tasks()
+        if not isinstance(callback.message, Message):
+            return
+        try:
+            tasks = await db.list_open_tasks()
+        except Exception:
+            log.exception("Ro'yxatni o'qishda xato")
+            await callback.message.answer(uz.AI_ERROR)
+            return
         await _send_voice(callback.message, views.format_task_list_for_speech(tasks), ai)
 
     return router

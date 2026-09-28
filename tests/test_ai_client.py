@@ -71,6 +71,20 @@ def test_parse_chat_without_reply_is_unknown():
     assert parse_intent('{"intent":"chat","reply":""}').kind == "unknown"
 
 
+def test_parse_non_string_fields_are_unknown():
+    assert parse_intent('{"intent":"add_task","title":123}').kind == "unknown"
+    assert parse_intent('{"intent":"chat","reply":{"a":1}}').kind == "unknown"
+
+
+async def test_transcribe_non_json_or_wrong_shape_raises_aierror():
+    not_json = client_with(lambda r: httpx.Response(200, text="<html>oops</html>"))
+    with pytest.raises(AIError):
+        await not_json.transcribe(b"x")
+    a_list = client_with(lambda r: httpx.Response(200, json=["text"]))
+    with pytest.raises(AIError):
+        await a_list.transcribe(b"x")
+
+
 # --- HTTP ---
 
 async def test_transcribe_sends_base64_and_returns_text():

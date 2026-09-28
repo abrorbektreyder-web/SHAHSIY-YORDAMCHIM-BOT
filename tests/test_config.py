@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from bot.config import ConfigError, load_config
@@ -49,6 +51,19 @@ def test_webhook_uses_render_external_url(tmp_path):
         "WEBHOOK_SECRET": "s3cret",
     }))
     assert cfg.webhook_base_url == "https://vazifa-bot.onrender.com"
+
+
+def test_render_base64_secret_becomes_telegram_safe(tmp_path):
+    # Render generateValue namunasi: base64, "=" bilan tugaydi, "+" va "/" bo'lishi mumkin.
+    env = write_env(tmp_path, {
+        **BASE,
+        "MODE": "webhook",
+        "RENDER_EXTERNAL_URL": "https://vazifa-bot.onrender.com",
+        "WEBHOOK_SECRET": "B0jr+hAP/Y7pg92AN0c9MN4yecczLMdwnx4OkA1KFUk=",
+    })
+    first = load_config(env).webhook_secret
+    assert re.fullmatch(r"[A-Za-z0-9_-]{1,256}", first)
+    assert load_config(env).webhook_secret == first
 
 
 def test_bad_schema_rejected(tmp_path):

@@ -1,6 +1,7 @@
 """Bot konfiguratsiyasi — .env dan o'qiladi."""
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 from dataclasses import dataclass
@@ -69,7 +70,10 @@ def load_config(env_path: str | None = None) -> Config:
     base_url = (get("WEBHOOK_BASE_URL") or get("RENDER_EXTERNAL_URL")).rstrip("/")
     if base_url and not base_url.startswith(("http://", "https://")):
         base_url = f"https://{base_url}"
-    secret = get("WEBHOOK_SECRET")
+    # Render generateValue base64 beradi ("=", "+", "/" bilan), Telegram esa
+    # secret_token'da faqat A-Z a-z 0-9 _ - ni qabul qiladi. Hex xesh har doim mos.
+    raw_secret = get("WEBHOOK_SECRET")
+    secret = hashlib.sha256(raw_secret.encode()).hexdigest() if raw_secret else ""
     if mode == "webhook":
         if not base_url:
             raise ConfigError("MODE=webhook uchun WEBHOOK_BASE_URL kerak")

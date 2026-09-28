@@ -30,12 +30,13 @@ from content import uz
 log = logging.getLogger(__name__)
 
 
-def webhook_path(secret: str) -> str:
-    return f"/tg/{secret}"
+# Sir manzilga qo'yilmaydi: aiohttp access log har so'rov manzilini logga yozadi.
+# Haqiqiy tekshiruv — X-Telegram-Bot-Api-Secret-Token sarlavhasi.
+WEBHOOK_PATH = "/tg/webhook"
 
 
-def webhook_url(base_url: str, secret: str) -> str:
-    return f"{base_url.rstrip('/')}{webhook_path(secret)}"
+def webhook_url(base_url: str) -> str:
+    return f"{base_url.rstrip('/')}{WEBHOOK_PATH}"
 
 
 async def health(_request) -> web.Response:
@@ -73,7 +74,7 @@ def build_app(bot: Bot, dp: Dispatcher, config: Config) -> web.Application:
     app.router.add_get("/health", health)
     app.router.add_get("/", health)
     SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=config.webhook_secret).register(
-        app, path=webhook_path(config.webhook_secret)
+        app, path=WEBHOOK_PATH
     )
     setup_application(app, dp, bot=bot)
     return app
@@ -85,13 +86,18 @@ async def _run_polling(bot: Bot, dp: Dispatcher) -> None:
     await dp.start_polling(bot)
 
 
-async def _run_webhook(bot: Bot, dp: Dispatcher, config: Config) -> None:
+async def register_webhook(bot, config: Config) -> None:
+    # Render qayta ishga tushayotganda kelgan xabarlar tashlab yuborilmasin.
     await bot.set_webhook(
-        webhook_url(config.webhook_base_url, config.webhook_secret),
+        webhook_url(config.webhook_base_url),
         secret_token=config.webhook_secret,
-        drop_pending_updates=True,
+        drop_pending_updates=False,
     )
     log.info("Webhook o'rnatildi: %s", config.webhook_base_url)
+
+
+async def _run_webhook(bot: Bot, dp: Dispatcher, config: Config) -> None:
+    await register_webhook(bot, config)
     runner = web.AppRunner(build_app(bot, dp, config))
     await runner.setup()
     await web.TCPSite(runner, host="0.0.0.0", port=config.port).start()

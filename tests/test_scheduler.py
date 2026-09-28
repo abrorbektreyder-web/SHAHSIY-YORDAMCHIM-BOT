@@ -40,3 +40,29 @@ async def test_loop_sends_and_survives_errors():
         await daily_report_loop(send, sleep=fake_sleep)
     assert len(sends) == 2
     assert all(0 < s <= 24 * 3600 for s in sleeps)
+
+
+async def test_loop_sends_only_once_per_day():
+    # Taymer biroz erta uyg'onsa, 08:00 gacha qolgan millisekundlardan keyin
+    # ikkinchi marta yubormasligi kerak.
+    times = iter([
+        datetime(2026, 9, 29, 7, 59, 59, 990000, tzinfo=TASHKENT),
+        datetime(2026, 9, 29, 7, 59, 59, 995000, tzinfo=TASHKENT),
+        datetime(2026, 9, 29, 7, 59, 59, 999000, tzinfo=TASHKENT),
+        datetime(2026, 9, 29, 8, 0, 0, 1000, tzinfo=TASHKENT),
+        datetime(2026, 9, 29, 8, 0, 0, 2000, tzinfo=TASHKENT),
+    ])
+    sleeps = []
+    sends = []
+
+    async def fake_sleep(seconds):
+        sleeps.append(seconds)
+        if len(sleeps) > 2:
+            raise asyncio.CancelledError
+
+    async def send():
+        sends.append(1)
+
+    with pytest.raises(asyncio.CancelledError):
+        await daily_report_loop(send, sleep=fake_sleep, clock=lambda: next(times))
+    assert len(sends) == 1

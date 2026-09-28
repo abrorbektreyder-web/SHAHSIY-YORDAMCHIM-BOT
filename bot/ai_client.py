@@ -55,14 +55,18 @@ def parse_intent(raw: str) -> Intent:
 
     kind = data["intent"]
     if kind == "add_task":
-        title = (data.get("title") or "").strip()
+        title = _text(data.get("title"))
         if not title:
             return Intent("unknown")
         return Intent("add_task", title, _parse_due(data.get("due_at")), "")
     if kind == "chat":
-        reply = (data.get("reply") or "").strip()
+        reply = _text(data.get("reply"))
         return Intent("chat", reply=reply) if reply else Intent("unknown")
     return Intent(kind)
+
+
+def _text(value: object) -> str:
+    return value.strip() if isinstance(value, str) else ""
 
 
 class AIClient:
@@ -88,7 +92,10 @@ class AIClient:
                 "language": "uz",
             },
         )
-        text = (resp.json().get("text") or "").strip()
+        try:
+            text = _text(resp.json().get("text"))
+        except (AttributeError, ValueError) as exc:
+            raise AIError(f"transkripsiya javobi kutilmagan shaklda: {resp.text[:200]}") from exc
         if not text:
             raise AIError("transkripsiya bo'sh qaytdi")
         return text

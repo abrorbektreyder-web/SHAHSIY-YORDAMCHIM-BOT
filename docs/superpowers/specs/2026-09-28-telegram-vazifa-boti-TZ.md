@@ -152,7 +152,7 @@ Batafsil ish rejasi (har fayl kodi va testlari bilan): `docs/superpowers/plans/2
 | F3 | Vazifalar ro'yxatini ko'rsatish | "Ro'yxatni ko'rsat" so'roviga faqat tugallanmagan vazifalar, har biri tugma bilan chiqadi |
 | F4 | Vazifani bajarilgan deb belgilash | Tugma bosilganda vazifa `done: true` bo'ladi va ro'yxatdan chiqadi |
 | F5 | Kunlik avtomatik hisobot | Har kuni 08:00 (Asia/Tashkent) tugallanmagan vazifalar ro'yxati avtomatik yuboriladi |
-| F6 | Ovozli javob (qisqa) | Qisqa tasdiq xabarlari ovozli xabar sifatida ham yuboriladi |
+| F6 | Ovozli javob (qisqa) | Qisqa javoblar (vazifa qo'shildi, suhbat) faqat ovozli xabar sifatida yuboriladi; ovoz yaratilmasa — matn bilan (egasining qarori: "qisqa javoblar ovozli, uzun hisobotlar matn shaklida") |
 | F7 | Hisobotni ovozda eshitish | Tugma yoki ovozli buyruq ("vaqtim yo'q, ovozda ayt") orqali oxirgi ro'yxat ovozga aylantiriladi |
 | F8 | Faqat egasiga xizmat | `OWNER_ID`dan boshqa `user_id`dan kelgan xabarlarga javob berilmaydi |
 | F9 | Oddiy suhbat | Vazifa/ro'yxat bilan bog'liq bo'lmagan xabarlarga ham tabiiy javob qaytariladi |
@@ -199,7 +199,7 @@ Jadval bot birinchi ishga tushganda `init_db()` orqali avtomatik yaratiladi (TAR
 | `DB_SCHEMA` | Sxema nomi | `vazifa` (o'zgarmas) |
 | `MODE` | `polling` (lokal) yoki `webhook` (Render) | `render.yaml` o'rnatadi |
 | `WEBHOOK_BASE_URL` | Render servis manzili | Shart emas — Render `RENDER_EXTERNAL_URL`ni o'zi beradi, kod undan foydalanadi |
-| `WEBHOOK_SECRET` | Webhook himoya kaliti | Render avtomatik yaratadi |
+| `WEBHOOK_SECRET` | Webhook himoya kaliti | Render avtomatik yaratadi (kod uni Telegram qabul qiladigan hex ko'rinishga o'giradi) |
 
 Bular hech qachon kodga yozilmaydi — faqat Render servisining **Environment** bo'limiga kiritiladi (lokal sinov uchun `.env` fayliga, u `.gitignore`da).
 
@@ -224,6 +224,8 @@ Bular hech qachon kodga yozilmaydi — faqat Render servisining **Environment** 
 8. Environment bo'limiga maxfiy qiymatlar kiritiladi: `BOT_TOKEN`, `OPENROUTER_API_KEY`, `OWNER_ID`, `DATABASE_URL`.
 9. Deploy logida "Webhook o'rnatildi" chiqqanini va `https://<servis>.onrender.com/health` → `ok` qaytarishini tekshirish.
 10. UptimeRobot'da `https://<servis>.onrender.com/health` uchun 5 daqiqalik monitor qo'shiladi.
+
+> ⚠️ Render'ga joylangandan keyin botni **kompyuterda (`MODE=polling`) qayta ishga tushirmang**: polling rejimi Render'dagi webhook'ni o'chirib qo'yadi va bot Render qayta ishga tushmaguncha javob bermay qoladi. Kompyuterda sinash kerak bo'lsa — @BotFather'dan alohida sinov boti oching.
 
 ### 8.5 Yakuniy sinov
 11. Telegramda botga 1 ta matnli va 1 ta ovozli vazifa yuboriladi, "Ro'yxat" va "✅ Bajarildi" tekshiriladi.
@@ -273,6 +275,7 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 6 | Bot mantiqi: vazifa / ro'yxat / suhbat (`logic.py`) | ☑ | 6/6 test o'tdi |
 | 7 | Telegram handlerlar va tugmalar (`handlers.py`, `keyboards.py`) | ☑ | 3/3 tugma testi o'tdi; handlerlar xatosiz yuklandi (haqiqiy Telegram — 9-blokda) |
 | 8 | Ishga tushirish va Render sozlamasi (`main.py`, `render.yaml`) | ☑ | 3/3 test o'tdi; umumiy: 47 o'tdi, 5 ta (Supabase) kutmoqda |
+| 8+ | Kod tekshiruvi (code review) tuzatishlari: webhook kaliti formati, logga sir tushishi, qayta ishga tushishda xabar yo'qolishi, kunlik hisobot takrorlanishi, ovoz/tugma xatolari | ☑ | 6 ta yangi test; umumiy: 52 o'tdi, 5 ta (Supabase) kutmoqda |
 | 9 | Lokal sinov: haqiqiy bot bilan 1 ta matnli va 1 ta ovozli vazifa | ☐ | — |
 | 10 | GitHub'ga yuklash, Render'ga joylash, UptimeRobot | ☐ | — |
 | 11 | Yakuniy sinov: Render'da ishlashi va 08:00 hisobot | ☐ | — |

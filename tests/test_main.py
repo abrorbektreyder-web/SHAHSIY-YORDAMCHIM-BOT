@@ -1,10 +1,29 @@
 from bot import main
+from bot.config import Config
 from bot.models import Task
 
 
-def test_webhook_path_and_url():
-    assert main.webhook_path("abc") == "/tg/abc"
-    assert main.webhook_url("https://x.onrender.com/", "abc") == "https://x.onrender.com/tg/abc"
+def test_webhook_url_has_fixed_path_without_secret():
+    assert main.WEBHOOK_PATH == "/tg/webhook"
+    assert main.webhook_url("https://x.onrender.com/") == "https://x.onrender.com/tg/webhook"
+
+
+async def test_register_webhook_keeps_pending_updates():
+    calls = {}
+
+    class FakeBot:
+        async def set_webhook(self, url, **kwargs):
+            calls.update(url=url, **kwargs)
+
+    config = Config(
+        bot_token="t", owner_id=1, openrouter_api_key="k", database_url="d",
+        mode="webhook", webhook_base_url="https://x.onrender.com", webhook_secret="abc123",
+    )
+    await main.register_webhook(FakeBot(), config)
+    assert calls["url"] == "https://x.onrender.com/tg/webhook"
+    assert calls["secret_token"] == "abc123"
+    # Render qayta ishga tushayotganda yuborilgan xabarlar yo'qolmasin.
+    assert calls["drop_pending_updates"] is False
 
 
 async def test_daily_sender_sends_report_with_buttons_to_owner(monkeypatch):
