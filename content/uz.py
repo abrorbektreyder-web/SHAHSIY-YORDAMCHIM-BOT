@@ -40,7 +40,12 @@ STT_PROMPT = (
     "Dushanba kuni uchrashuv. Vazifalarim qanday? Vaqtim yo'q, ovozda aytib ber."
 )
 
-NOT_UNDERSTOOD ="Kechirasiz, buni tushunmadim. Boshqacharoq yozib yoki aytib ko'ra olasizmi?"
+SEARCH_DISABLED = "Internetdan qidirish hali yoqilmagan."
+ASK_PLACE = "Qaysi shaharda qidiray? Shahar nomini yozing yoki pastdagi 📍 tugmani bosing."
+SEARCH_ERROR = "Qidiruvda xato bo'ldi. Birozdan keyin urinib ko'ring."
+SEARCH_EMPTY = "Hech narsa topilmadi. Boshqacharoq so'rab ko'ring."
+
+NOT_UNDERSTOOD = "Kechirasiz, buni tushunmadim. Boshqacharoq yozib yoki aytib ko'ra olasizmi?"
 AI_ERROR = "Kechirasiz, hozir javob bera olmadim. Birozdan keyin qayta urinib ko'ring."
 VOICE_ERROR = "Ovozli xabarni tushuna olmadim. Iltimos, qaytadan yuboring yoki yozib yuboring."
 

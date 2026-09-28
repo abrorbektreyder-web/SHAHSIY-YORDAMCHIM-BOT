@@ -300,6 +300,6 @@ Batafsil reja: `docs/superpowers/specs/2026-09-28-bosqich2-qidiruv-design.md`. Q
 | 2.2 | Joylashuvdan shahar aniqlash (`geo.py`) | ☑ | 3 ta test o'tdi; jonli: 7/7 joy to'g'ri (Toshkent ×2, Andijon, Samarqand, Namangan, Buxoro, Asaka tumani). Topilgan xato: `zoom=10` da Toshkent "Qashqar mahalla" chiqardi (OSM ma'lumot xatosi) → `zoom=8` |
 | 2.3 | AI: qidiruv niyatini aniqlash va natijalarni saralash | ☑ | 4 ta yangi test; jonli: 7/7 so'rov to'g'ri (bilet, mehmonxona shaharsiz, restoran shahar bilan, YouTube, umumiy, band qilish → halol rad, oddiy vazifa) |
 | 2.4 | Natijalar ko'rinishi (3 ta + "Yana ko'rsat") | ☑ | 2 ta yangi test (raqamlash, havola, HTML xavfsizligi, 2-sahifa) |
-| 2.5 | Bot mantiqi: shahar so'rash, qidiruv, xatolar | ☐ | — |
+| 2.5 | Bot mantiqi: shahar so'rash, qidiruv, xatolar | ☑ | 9 ta yangi test (qidiruv o'chiq, shahar so'rash, shahar bilan qidiruv, saralash va 2-sahifa, saralash xatosida zaxira tartib, qidiruv xatosi/bo'sh natija); umumiy 102 test o'tdi |
 | 2.6 | Telegram: 📍 tugma, joylashuv, "Yana ko'rsat", ishga tushirish | ☐ | — |
 | 2.7 | Jonli sinov (har yo'nalishdan 1 tadan) va Render'ga chiqarish | ☐ | — |
