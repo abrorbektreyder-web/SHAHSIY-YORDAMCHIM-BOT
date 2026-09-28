@@ -15,7 +15,7 @@
 - Yangi kutubxona yo'q; faqat mavjud `httpx`, `aiogram`.
 - Havola va sarlavhalar faqat Tavily natijasidan; AI faqat tartib (`n`) va izoh qaytaradi.
 - Tavily: `POST https://api.tavily.com/search`, `Authorization: Bearer <key>`, `search_depth: "basic"`, `max_results: 6`; YouTube uchun `include_domains: ["youtube.com"]`.
-- Nominatim: `GET https://nominatim.openstreetmap.org/reverse`, `format=jsonv2`, `zoom=10`, `accept-language=uz`, `User-Agent` majburiy.
+- Nominatim: `GET https://nominatim.openstreetmap.org/reverse`, `format=jsonv2`, `zoom=8` (zoom=10 da Toshkentda OSM xatosi — mahalla "shahar" deb qaytadi), `accept-language=uz`, `User-Agent` majburiy.
 - Sahifada 3 ta natija; 2-sahifa "Yana ko'rsat" bilan.
 - Shahar kerak toifalar: `hotel`, `restaurant`. Kutilayotgan qidiruvga ≤3 so'zli matn — shahar nomi; uzunroq matn — kutish bekor.
 - Barcha foydalanuvchi matnlari `content/uz.py`da; HTML matnda `escape(..., quote=False)`, atributda `escape(url)`.
