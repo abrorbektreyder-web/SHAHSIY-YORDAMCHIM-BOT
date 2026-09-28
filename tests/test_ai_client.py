@@ -14,6 +14,8 @@ from bot.ai_client import (
     Intent,
     parse_intent,
     parse_ranking,
+    parse_answer,
+    Answer,
 )
 from bot.booking import BookingRequest
 from bot.scheduler import TASHKENT
@@ -426,3 +428,27 @@ async def test_system_prompt_describes_booking():
     assert '"book"' in seen["system"] and "never pays" in seen["system"]
     assert "destination_en" in seen["system"] and "never guess dates" in seen["system"]
     assert "never pick one from the bot's results" in seen["system"]
+
+
+def test_parse_answer():
+    raw = '{"found": true, "answer": " Kurs 12 650 so\'m [1]. ", "sources": [1, 1, 5, true, 2]}'
+    assert parse_answer(raw, 3) == Answer(True, "Kurs 12 650 so'm [1].", (0, 1))
+    assert parse_answer('{"found": false, "answer": ""}', 3) == Answer(False)
+    assert parse_answer('{"found": true, "answer": ""}', 3) == Answer(False)
+    assert parse_answer("buzuq", 3) == Answer(False)
+
+
+async def test_answer_sends_numbered_sources_with_page_text():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return chat_response('{"found": true, "answer": "Kurs 12 650 so\'m [1].", "sources": [1]}')
+
+    sources = [(SearchResult("CBU", "https://cbu.uz", "qisqa"), "To'liq sahifa: 1 USD = 12 650 so'm")]
+    answer = await groq_client_with(handler).answer("Dollar kursi", sources, NOW)
+    assert answer == Answer(True, "Kurs 12 650 so'm [1].", (0,))
+    system, user = (m["content"] for m in seen["body"]["messages"])
+    assert "ONLY the numbered sources" in system and "2026-09-28" in system
+    assert "Savol: Dollar kursi" in user and "[1] CBU" in user and "1 USD = 12 650 so'm" in user
+    assert 0 < seen["body"]["max_tokens"] <= 600

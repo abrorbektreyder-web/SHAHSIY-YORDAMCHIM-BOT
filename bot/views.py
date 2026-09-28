@@ -134,6 +134,22 @@ def format_search_pages(
     return pages
 
 
+def format_answer(
+    title: str, answer: str | None, sources: list[SearchResult], cited: tuple[int, ...]
+) -> str:
+    """Manbalarga tayangan javob. [n] raqamlari javob matnidagi havolalarga mos keladi."""
+    lines = [f"🔎 <b>{escape(title, quote=False)}</b>", "", escape(answer, quote=False) if answer else uz.ANSWER_NOT_FOUND]
+    shown = cited if answer and cited else tuple(range(len(sources)))
+    lines += ["", uz.ANSWER_SOURCES]
+    for i in shown:
+        src = sources[i]
+        lines.append(
+            f'[{i + 1}] <a href="{escape(src.url)}">{escape(_domain(src.url), quote=False)}</a>'
+            f" — {escape(src.title, quote=False)}"
+        )
+    return "\n".join(lines)
+
+
 MEMO_LIMIT = 300
 _TAG = re.compile(r"<[^>]+>")
 

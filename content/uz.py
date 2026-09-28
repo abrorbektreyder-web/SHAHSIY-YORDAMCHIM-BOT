@@ -53,6 +53,8 @@ PLACE_NOT_FOUND = "Joylashuvdan shaharni aniqlay olmadim. Iltimos, shahar nomini
 LOCATION_UNUSED = "Joylashuv qabul qilindi, lekin hozir kutilayotgan qidiruv yo'q."
 SEARCH_MORE_BUTTON = "➡️ Yana ko'rsat"
 SEARCH_EXPIRED = "Bu natijalar eskirgan. Qidiruvni qaytadan so'rang."
+ANSWER_SOURCES = "📚 Manbalar:"
+ANSWER_NOT_FOUND = "Topilgan sahifalarda bu savolga aniq javob topilmadi. Quyidagi manbalarni ko'rib chiqing:"
 
 BOOKING_HEADER = "{icon} <b>{title}</b> — bron uchun tayyor"
 BOOKING_NO_CONTACTS = "📞 Telefon raqami topilmadi — mehmonxona saytidan yoki Booking.com orqali bog'laning."
@@ -104,7 +106,13 @@ The message may start with "Oldingi suhbat:" (previous conversation, for context
 
 For intents other than "chat", "reply" = "". For intents other than "add_task", "search" and "book", "title" = null. For intents other than "add_task", "due_at" = null. For intents other than "list_tasks", "filter" = null. For intents other than "search" and "book", "category" and "place" = null. For intents other than "search", "query" = null. For intents other than "book", "checkin", "checkout", "guests", "rooms", "room_type", "time", "name_en", "destination_en" and "stars" = null."""
 
-RANK_PROMPT = """You rank web search results for a personal assistant bot. The user writes in Uzbek.
+ANSWER_PROMPT = """You answer the user's question for a personal assistant bot using ONLY the numbered sources below (web search results and texts extracted from those pages). The user writes in Uzbek. Current date and time (Asia/Tashkent): {now}.
+Answer ONLY with JSON: {{"found": true, "answer": "...", "sources": [1, 2]}}
+- If the sources contain the answer: "found" = true; "answer" = a clear, complete answer in Uzbek Latin (2-6 sentences) with exact numbers, prices, dates and names exactly as written in the sources, citing the source number like [1] right after each fact; "sources" = numbers of the sources you used.
+- If the sources do not contain the answer: "found" = false, "answer" = "", "sources" = [].
+Never invent facts and never use knowledge that is not in the sources. If sources disagree, say so. If a figure may be outdated, mention the date given in the source."""
+
+RANK_PROMPT ="""You rank web search results for a personal assistant bot. The user writes in Uzbek.
 Pick up to 6 results that best match the request, best first; skip irrelevant ones.
 Answer ONLY with JSON: {"items": [{"n": <result number>, "note": "<one short sentence in Uzbek Latin, at most 15 words>"}]}
 The note says what the result offers. Mention prices, ratings, dates or addresses ONLY if they appear in the result text. Never invent facts.

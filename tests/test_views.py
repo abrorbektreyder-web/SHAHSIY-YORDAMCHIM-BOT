@@ -151,3 +151,28 @@ def test_memo_strips_html_and_trims():
     text = "✈️ <b>Toshkent → Madina</b>\n\n1. <b>Aviasales</b>\n🔗 <a href=\"https://aviasales.uz\">aviasales.uz</a>"
     assert views.memo(text) == "✈️ Toshkent → Madina 1. Aviasales 🔗 aviasales.uz"
     assert len(views.memo("a " * 500)) <= 300
+
+
+def test_format_answer_with_cited_sources():
+    sources = [
+        SearchResult("Markaziy bank", "https://cbu.uz/kurs"),
+        SearchResult("Kun.uz", "https://www.kun.uz/news/1"),
+        SearchResult("Boshqa", "https://x.uz"),
+    ]
+    text = views.format_answer("Dollar kursi", "1 $ = 12 650 so'm [1], banklarda 12 700 [2].", sources, (0, 1))
+    assert text == (
+        "🔎 <b>Dollar kursi</b>\n"
+        "\n"
+        "1 $ = 12 650 so'm [1], banklarda 12 700 [2].\n"
+        "\n"
+        "📚 Manbalar:\n"
+        '[1] <a href="https://cbu.uz/kurs">cbu.uz</a> — Markaziy bank\n'
+        '[2] <a href="https://www.kun.uz/news/1">kun.uz</a> — Kun.uz'
+    )
+
+
+def test_format_answer_not_found_lists_all_sources():
+    sources = [SearchResult("A", "https://a.uz"), SearchResult("B", "https://b.uz")]
+    text = views.format_answer("Savol", None, sources, ())
+    assert "aniq javob topilmadi" in text
+    assert "[1] " in text and "[2] " in text

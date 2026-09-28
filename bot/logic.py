@@ -17,11 +17,14 @@ from bot.booking import (
     hotel_page_url,
 )
 from bot.models import PLACE_CATEGORIES, Task
+from bot.scheduler import now_tashkent
 from bot.search import SearchError
 from content import uz
 
 log = logging.getLogger(__name__)
 PLACE_WORD_LIMIT = 3
+ANSWER_SOURCES = 4
+EXTRACT_PAGES = 2  # Tavily: 5 ta sahifa = 1 kredit
 
 
 @dataclass(frozen=True)
@@ -53,6 +56,24 @@ async def daily_report(store, now: datetime) -> Reply:
     return Reply("list", text, shown)
 
 
+async def _answer_from_pages(title: str, query: str, results, ai, searcher) -> Reply | None:
+    """Umumiy savol: eng mos sahifalarni o'qib, manbalarga tayangan javob. AI xatosida None."""
+    top = results[:ANSWER_SOURCES]
+    pages: dict[str, str] = {}
+    try:
+        pages = await searcher.extract([r.url for r in top[:EXTRACT_PAGES]], query)
+    except SearchError as exc:
+        log.warning("Sahifalarni o'qishda xato, qisqa parchalar ishlatiladi: %s", exc)
+    sources = [(r, pages.get(r.url) or r.content) for r in top]
+    try:
+        answer = await ai.answer(f"{title} ({query})", sources, now_tashkent())
+    except AIError as exc:
+        log.warning("Javob yozishda xato, natijalar ro'yxati ko'rsatiladi: %s", exc)
+        return None
+    text = views.format_answer(title, answer.text if answer.found else None, top, answer.sources)
+    return Reply("search", text)
+
+
 async def run_search(intent: Intent, place: str | None, ai, searcher) -> Reply:
     query, title = intent.query, intent.title or intent.query
     if place:
@@ -67,6 +88,10 @@ async def run_search(intent: Intent, place: str | None, ai, searcher) -> Reply:
         return Reply("text", uz.SEARCH_ERROR)
     if not results:
         return Reply("text", uz.SEARCH_EMPTY)
+    if intent.category == "general":
+        answered = await _answer_from_pages(title, query, results, ai, searcher)
+        if answered is not None:
+            return answered
     try:
         ranking = await ai.rank_results(query, results)
     except AIError as exc:

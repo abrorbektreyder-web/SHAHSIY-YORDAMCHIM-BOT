@@ -318,3 +318,10 @@ Egasining qarori (2026-09-29): Booking.com'da to'liq avtomatik bron qilinmaydi (
 | 4.3 | Telefon / Telegram raqamlarini qidirib topish (manba sayti bilan) va aytiladigan tayyor gap | ☑ | 7 ta test; jonli: CHINOR HOTEL (Andijon) — 2 raqam (instagram.com, goldenpages.uz), Rayhon restorani — 3 raqam |
 | 4.2+ | Booking havolasini tuzatish (egasi xabar qildi: Dubay o'rniga eski qidiruv, 30-okt o'rniga 28-sen) | ☑ | Ildiz sabab brauzerda tasdiqlandi: `ss`ga o'zbekcha tavsif yoki mehmonxona nomi qo'yilsa Booking "0 variant" ko'rsatib sanani tiklaydi. Endi: aniq mehmonxona → uning `/hotel/..` sahifasi (Tavily, booking.com) + sanalar ✓ (CHINOR: 30–31-okt); aniq nom yo'q → inglizcha shahar (`ss=Dubai`) + `nflt=class=5` ✓ (350 variant, 30–31-okt); raqamlar faqat aniq nomda qidiriladi; AI sana va mehmonxonani taxmin qilmaydi. 132 test o'tdi |
 | 4.4 | Pulsiz, bekor qilinadigan bandlovni botning o'zi amalga oshirishi | ☐ | Qurilmaydi (yuqoridagi sabablar); kelajakda rasmiy bron API'si bo'lgan xizmat topilsa qayta ko'riladi |
+
+### 13.1 Qidiruvni kuchaytirish (egasi so'rovi, 2026-09-29)
+
+| Blok | Nima qilinadi | Holat | Tekshiruv natijasi |
+|---|---|---|---|
+| 2.9 | Umumiy savollarga to'liq javob: eng mos 2 ta sahifa to'liq o'qiladi (Tavily Extract, 5 sahifa = 1 kredit), AI faqat manbalarga tayanib o'zbekcha javob yozadi va [n] bilan manbani ko'rsatadi; javob topilmasa — halol aytadi | ☑ | 11 ta yangi test (umumiy 143); jonli: dollar kursi — aniq raqam va manba (zamin.uz); ob-havo — 2 manba, farqi ko'rsatildi; iPhone narxi — topilmadi deb halol javob |
+| 2.10 | YouTube: faqat video havolalari (`watch?v=`, `shorts/`, `youtu.be/`), kanal va pleylistlar tashlanadi; kalitsiz (egasi tanlovi) | ☑ | 1 ta test; jonli: Yosin surasi, Sherlok Xolms — faqat video havolalari |

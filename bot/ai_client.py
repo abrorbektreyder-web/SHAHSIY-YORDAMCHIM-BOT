@@ -29,6 +29,9 @@ TTS_MODEL = "google/gemini-3.8-flash-tts"
 TTS_VOICE = "Kore"
 MAX_RETRY_WAIT = 10  # soniya
 MAX_OUTPUT_TOKENS = 400
+ANSWER_MAX_TOKENS = 600
+# Groq bepul tarifida daqiqasiga 8000 token: 4 manba × ~2500 belgi (~700 token) sig'adi.
+ANSWER_SOURCE_CHARS = 2500
 
 INTENTS = ("add_task", "list_tasks", "speak_report", "search", "book", "chat", "unknown")
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
@@ -137,6 +140,28 @@ def _positive_int(raw: object) -> int:
     if isinstance(raw, str) and raw.strip().isdigit():
         raw = int(raw)
     return raw if isinstance(raw, int) and not isinstance(raw, bool) and raw >= 1 else 1
+
+
+@dataclass(frozen=True)
+class Answer:
+    found: bool
+    text: str = ""
+    sources: tuple[int, ...] = ()  # foydalanilgan manbalar, 0 dan boshlanadi
+
+
+def parse_answer(raw: str, count: int) -> Answer:
+    data = _load_json(raw)
+    if not isinstance(data, dict) or data.get("found") is not True:
+        return Answer(False)
+    text = _text(data.get("answer"))
+    if not text:
+        return Answer(False)
+    used: list[int] = []
+    sources = data.get("sources")
+    for n in sources if isinstance(sources, list) else []:
+        if isinstance(n, int) and not isinstance(n, bool) and 1 <= n <= count and n - 1 not in used:
+            used.append(n - 1)
+    return Answer(True, text, tuple(used))
 
 
 def parse_ranking(raw: str, count: int) -> list[tuple[int, str]]:
@@ -290,6 +315,30 @@ class AIClient:
             },
         )
         return parse_ranking(self._content(resp), len(results))
+
+    async def answer(
+        self, question: str, sources: list[tuple[SearchResult, str]], now: datetime
+    ) -> Answer:
+        """Faqat berilgan manbalar (qidiruv natijasi + sahifa matni) asosida javob."""
+        numbered = "\n\n".join(
+            f"[{i}] {r.title}\n{r.url}\n{text[:ANSWER_SOURCE_CHARS]}"
+            for i, (r, text) in enumerate(sources, start=1)
+        )
+        resp = await self._post(
+            self._llm_provider,
+            "/chat/completions",
+            json={
+                "model": self._llm_model,
+                "messages": [
+                    {"role": "system", "content": uz.ANSWER_PROMPT.format(now=now.isoformat(timespec="minutes"))},
+                    {"role": "user", "content": f"Savol: {question}\n\nManbalar:\n{numbered}"},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0,
+                "max_tokens": ANSWER_MAX_TOKENS,
+            },
+        )
+        return parse_answer(self._content(resp), len(sources))
 
     @staticmethod
     def _content(resp: httpx.Response) -> str:

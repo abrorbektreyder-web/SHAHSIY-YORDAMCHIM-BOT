@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from bot.ai_client import AIError, Intent
+from bot.ai_client import AIError, Answer, Intent
 from bot.logic import Reply, daily_report, handle_text, looks_like_place, run_search, task_report
 from bot.models import Task
 from bot.scheduler import TASHKENT
@@ -20,10 +20,11 @@ RESULTS = [SearchResult(f"Natija {i}", f"https://r{i}.com", "") for i in range(1
 
 
 class FakeAI:
-    def __init__(self, intent, ranking=None, rank_error=False):
+    def __init__(self, intent, ranking=None, rank_error=False, answer=None):
         self.intent = intent
         self.ranking = ranking or []
         self.rank_error = rank_error
+        self.answer_result = answer
         self.seen = []
 
     async def understand(self, text, now, history=()):
@@ -36,11 +37,18 @@ class FakeAI:
             raise AIError("down")
         return self.ranking
 
+    async def answer(self, question, sources, now):
+        self.answer_sources = sources
+        if self.answer_result is None:
+            raise AIError("down")
+        return self.answer_result
+
 
 class FakeSearcher:
-    def __init__(self, results=None, error=False):
+    def __init__(self, results=None, error=False, extract_error=False):
         self.results = RESULTS if results is None else results
         self.error = error
+        self.extract_error = extract_error
         self.calls = []
 
     async def search(self, query, category, max_results=6, domains=None):
@@ -48,6 +56,12 @@ class FakeSearcher:
         if self.error:
             raise SearchError("down")
         return self.results
+
+    async def extract(self, urls, query):
+        self.extracted = urls
+        if self.extract_error:
+            raise SearchError("down")
+        return {urls[0]: "TO'LIQ SAHIFA: 1 USD = 12 650 so'm"}
 
 
 class FakeStore:
@@ -249,3 +263,36 @@ async def test_book_without_searcher_or_on_error_still_prepares_link():
     assert reply.kind == "booking" and "ss=Andijan" in reply.url
     reply = await handle_text("bron qil", FakeAI(BOOK), FakeStore(), NOW, FakeSearcher(error=True))
     assert reply.kind == "booking" and "ss=Andijan" in reply.url
+
+
+RATE = Intent("search", title="Bugungi dollar kursi", category="general", query="dollar kursi bugun")
+
+
+async def test_general_question_gets_answer_from_page_texts():
+    searcher = FakeSearcher()
+    ai = FakeAI(RATE, answer=Answer(True, "1 $ = 12 650 so'm [1].", (0,)))
+    reply = await handle_text("dollar kursi", ai, FakeStore(), NOW, searcher)
+    assert reply.kind == "search"
+    assert reply.text.startswith("🔎 <b>Bugungi dollar kursi</b>\n\n1 $ = 12 650 so'm [1].")
+    assert '[1] <a href="https://r1.com">r1.com</a> — Natija 1' in reply.text
+    assert searcher.extracted == ["https://r1.com", "https://r2.com"]
+    first_source_text = ai.answer_sources[0][1]
+    assert first_source_text == "TO'LIQ SAHIFA: 1 USD = 12 650 so'm"
+    assert len(ai.answer_sources) == 4
+
+
+async def test_answer_works_when_page_reading_fails():
+    ai = FakeAI(RATE, answer=Answer(True, "Javob [2].", (1,)))
+    reply = await handle_text("dollar kursi", ai, FakeStore(), NOW, FakeSearcher(extract_error=True))
+    assert "Javob [2]." in reply.text
+    assert ai.answer_sources[0][1] == ""  # sahifa o'qilmadi — qisqa parcha ishlatildi
+
+
+async def test_answer_not_found_shows_sources():
+    reply = await handle_text("dollar kursi", FakeAI(RATE, answer=Answer(False)), FakeStore(), NOW, FakeSearcher())
+    assert uz.ANSWER_NOT_FOUND in reply.text and "[4] " in reply.text
+
+
+async def test_answer_ai_error_falls_back_to_result_list():
+    reply = await handle_text("dollar kursi", FakeAI(RATE, answer=None), FakeStore(), NOW, FakeSearcher())
+    assert "1. <b>Natija 1</b>" in reply.text
