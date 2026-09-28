@@ -1,6 +1,7 @@
 """Uchta AI xizmati: nutq→matn, matnni tushunish (OpenRouter yoki Groq), matn→nutq (OpenRouter)."""
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import re
@@ -25,6 +26,8 @@ GROQ_LLM_MODEL = "qwen/qwen3.8-27b"
 DEFAULT_LLM_MODELS = {"openrouter": LLM_MODEL, "groq": GROQ_LLM_MODEL}
 TTS_MODEL = "google/gemini-3.8-flash-tts"
 TTS_VOICE = "Kore"
+MAX_RETRY_WAIT = 10  # soniya
+MAX_OUTPUT_TOKENS = 400
 
 INTENTS = ("add_task", "list_tasks", "speak_report", "search", "chat", "unknown")
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
@@ -117,6 +120,13 @@ def _text(value: object) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def _retry_after(resp: httpx.Response) -> float | None:
+    try:
+        return float(resp.headers.get("retry-after", ""))
+    except ValueError:
+        return None
+
+
 class AIClient:
     def __init__(
         self,
@@ -143,14 +153,20 @@ class AIClient:
         key = self._keys[provider]
         if not key:
             raise AIError(f"{provider}: API kaliti berilmagan")
-        try:
-            resp = await self._http.post(
-                f"{BASE_URLS[provider]}{path}",
-                headers={"Authorization": f"Bearer {key}"},
-                **kwargs,
-            )
-        except httpx.HTTPError as exc:
-            raise AIError(f"{path}: tarmoq xatosi: {exc}") from exc
+        for attempt in range(2):
+            try:
+                resp = await self._http.post(
+                    f"{BASE_URLS[provider]}{path}",
+                    headers={"Authorization": f"Bearer {key}"},
+                    **kwargs,
+                )
+            except httpx.HTTPError as exc:
+                raise AIError(f"{path}: tarmoq xatosi: {exc}") from exc
+            # Groq bepul tarifida daqiqalik token limiti kichik: qisqa kutish so'ralsa, bir marta qayta urinamiz.
+            wait = _retry_after(resp) if resp.status_code == 429 and attempt == 0 else None
+            if wait is None or wait > MAX_RETRY_WAIT:
+                break
+            await asyncio.sleep(wait)
         if resp.status_code != 200:
             raise AIError(f"{path}: HTTP {resp.status_code}: {resp.text[:200]}")
         return resp
@@ -201,6 +217,7 @@ class AIClient:
                 ],
                 "response_format": {"type": "json_object"},
                 "temperature": 0,
+                "max_tokens": MAX_OUTPUT_TOKENS,
             },
         )
         return parse_intent(self._content(resp))
@@ -220,6 +237,7 @@ class AIClient:
                 ],
                 "response_format": {"type": "json_object"},
                 "temperature": 0,
+                "max_tokens": MAX_OUTPUT_TOKENS,
             },
         )
         return parse_ranking(self._content(resp), len(results))

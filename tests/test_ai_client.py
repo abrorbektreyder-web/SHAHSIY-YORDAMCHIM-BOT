@@ -295,3 +295,41 @@ async def test_speak_disabled_without_openrouter_key_makes_no_request():
     with pytest.raises(AIError):
         await ai.speak("salom")
     assert client_with(handler).can_speak is True
+
+
+async def test_rate_limit_is_retried_once_when_wait_is_short():
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        if len(calls) == 1:
+            return httpx.Response(429, headers={"retry-after": "0"}, text="rate limit")
+        return chat_response('{"intent":"list_tasks"}')
+
+    assert await groq_client_with(handler).understand("x", NOW) == Intent("list_tasks")
+    assert len(calls) == 2
+
+
+async def test_rate_limit_with_long_wait_is_not_retried():
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        return httpx.Response(429, headers={"retry-after": "30"}, text="rate limit")
+
+    with pytest.raises(AIError, match="429"):
+        await groq_client_with(handler).understand("x", NOW)
+    assert len(calls) == 1
+
+
+async def test_llm_requests_cap_output_tokens():
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return chat_response('{"intent":"list_tasks","items":[]}')
+
+    ai = groq_client_with(handler)
+    await ai.understand("x", NOW)
+    await ai.rank_results("x", [SearchResult("A", "https://a.com")])
+    assert all(0 < body["max_tokens"] <= 400 for body in bodies)

@@ -78,5 +78,5 @@ For intents other than "chat", "reply" = "". For intents other than "add_task" a
 
 RANK_PROMPT = """You rank web search results for a personal assistant bot. The user writes in Uzbek.
 Pick up to 6 results that best match the request, best first; skip irrelevant ones.
-Answer ONLY with JSON: {"items": [{"n": <result number>, "note": "<1-2 short sentences in Uzbek Latin>"}]}
+Answer ONLY with JSON: {"items": [{"n": <result number>, "note": "<one short sentence in Uzbek Latin, at most 15 words>"}]}
 The note says what the result offers. Mention prices, ratings, dates or addresses ONLY if they appear in the result text. Never invent facts."""
