@@ -3,12 +3,16 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from html import escape
+from urllib.parse import urlparse
 
 from bot.models import Task
 from bot.scheduler import TASHKENT
+from bot.search import SearchResult
 from content import uz
 
 DONE_WINDOW = timedelta(days=7)
+SEARCH_ICONS = {"flight": "✈️", "hotel": "🏨", "restaurant": "🍽", "youtube": "▶️", "general": "🔎"}
+PER_PAGE = 3
 
 
 def format_due(due_at: datetime | None) -> str:
@@ -106,6 +110,27 @@ def format_task_list_for_speech(tasks: list[Task]) -> str:
         due = "" if task.due_at is None else f", muddati {format_due(task.due_at)}"
         parts.append(f"{n}. {task.title}{due}.")
     return " ".join(parts)
+
+
+def _domain(url: str) -> str:
+    host = urlparse(url).netloc.lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def format_search_pages(
+    category: str, title: str, items: list[tuple[SearchResult, str]], per_page: int = PER_PAGE
+) -> list[str]:
+    header = f"{SEARCH_ICONS.get(category, '🔎')} <b>{escape(title, quote=False)}</b>"
+    pages = []
+    for start in range(0, len(items), per_page):
+        lines = [header]
+        for n, (result, note) in enumerate(items[start:start + per_page], start=start + 1):
+            lines += ["", f"{n}. <b>{escape(result.title, quote=False)}</b>"]
+            if note:
+                lines.append(escape(note, quote=False))
+            lines.append(f'🔗 <a href="{escape(result.url)}">{escape(_domain(result.url), quote=False)}</a>')
+        pages.append("\n".join(lines))
+    return pages
 
 
 def heard_text(text: str) -> str:
