@@ -266,7 +266,7 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | Blok | Nima qilinadi | Holat | Tekshiruv natijasi |
 |---|---|---|---|
 | 1 | Loyiha asosi va konfiguratsiya (`config.py`, kutubxonalar) | ☑ | 6/6 test o'tdi |
-| 2 | Toshkent vaqti va kunlik 08:00 hisobot sikli (`scheduler.py`) | ☐ | — |
+| 2 | Toshkent vaqti va kunlik 08:00 hisobot sikli (`scheduler.py`) | ☑ | 5/5 test o'tdi |
 | 3 | O'zbekcha matnlar va ro'yxat ko'rinishi (`uz.py`, `views.py`) | ☐ | — |
 | 4 | Supabase'da saqlash (`db.py`) | ☐ | — |
 | 5 | OpenRouter AI: ovoz→matn, tushunish, matn→ovoz (`ai_client.py`) | ☐ | — |
