@@ -296,7 +296,7 @@ Batafsil reja: `docs/superpowers/specs/2026-09-28-bosqich2-qidiruv-design.md`. Q
 
 | Blok | Nima qilinadi | Holat | Tekshiruv natijasi |
 |---|---|---|---|
-| 2.1 | Tavily qidiruv moduli (`search.py`) va sozlama (`TAVILY_API_KEY`) | ☐ | — |
+| 2.1 | Tavily qidiruv moduli (`search.py`) va sozlama (`TAVILY_API_KEY`) | ☑ | 6 ta yangi test o'tdi; haqiqiy kalit bilan 1 ta qidiruv: KAYAK, Google Flights, Expedia topildi (2 s) |
 | 2.2 | Joylashuvdan shahar aniqlash (`geo.py`) | ☐ | — |
 | 2.3 | AI: qidiruv niyatini aniqlash va natijalarni saralash | ☐ | — |
 | 2.4 | Natijalar ko'rinishi (3 ta + "Yana ko'rsat") | ☐ | — |

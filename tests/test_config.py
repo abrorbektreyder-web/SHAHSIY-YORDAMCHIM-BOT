@@ -52,6 +52,12 @@ def test_groq_only_setup_needs_no_openrouter_key(tmp_path):
     assert cfg.llm_model == ""
 
 
+def test_tavily_key_is_optional(tmp_path):
+    assert load_config(write_env(tmp_path, GROQ)).tavily_api_key == ""
+    cfg = load_config(write_env(tmp_path, {**GROQ, "TAVILY_API_KEY": "tvly-x"}))
+    assert cfg.tavily_api_key == "tvly-x"
+
+
 def test_llm_model_override(tmp_path):
     cfg = load_config(write_env(tmp_path, {**GROQ, "LLM_MODEL": "openai/gpt-oss-20b"}))
     assert cfg.llm_model == "openai/gpt-oss-20b"

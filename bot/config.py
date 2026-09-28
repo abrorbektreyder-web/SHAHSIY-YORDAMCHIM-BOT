@@ -20,6 +20,7 @@ class Config:
     owner_id: int
     database_url: str
     openrouter_api_key: str = ""
+    tavily_api_key: str = ""
     groq_api_key: str = ""
     llm_provider: str = "openrouter"
     llm_model: str = ""
@@ -114,6 +115,7 @@ def load_config(env_path: str | None = None) -> Config:
         owner_id=_require_int(get, "OWNER_ID"),
         database_url=_require(get, "DATABASE_URL"),
         openrouter_api_key=get("OPENROUTER_API_KEY"),
+        tavily_api_key=get("TAVILY_API_KEY"),
         groq_api_key=get("GROQ_API_KEY"),
         llm_provider=providers["LLM_PROVIDER"],
         llm_model=get("LLM_MODEL"),
