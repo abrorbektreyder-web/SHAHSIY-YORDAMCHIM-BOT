@@ -1,0 +1,49 @@
+"""Botning barcha o'zbekcha matnlari. Kod matnni faqat shu yerdan oladi."""
+
+START = (
+    "Assalomu alaykum! Men sizning shaxsiy yordamchingizman.\n\n"
+    "Menga matn yoki ovozli xabar yuboring:\n"
+    "• vazifa: <i>«Ertaga soat 15:00 da shifokorga borish»</i>\n"
+    "• ro'yxat: <i>«Vazifalarim qanday?»</i>\n"
+    "• ovozli hisobot: <i>«Vaqtim yo'q, ovozda ayt»</i>\n\n"
+    "Har kuni soat 08:00 da sizga kunlik hisobot yuboraman."
+)
+
+TASK_ADDED = "Vazifa qo'shildi: {title}."
+TASK_ADDED_DUE = "Vazifa qo'shildi: {title}. Muddati: {due}."
+
+NO_TASKS = "Hozircha ochiq vazifa yo'q. 🎉"
+LIST_HEADER = "📋 <b>Ochiq vazifalar ({count} ta):</b>"
+DAILY_HEADER = "☀️ <b>Xayrli tong! Bugungi vazifalar ({count} ta):</b>"
+DAILY_EMPTY = "☀️ Xayrli tong! Bugun uchun ochiq vazifa yo'q."
+NO_DUE = "muddatsiz"
+
+SPEECH_LIST_INTRO = "Sizda {count} ta ochiq vazifa bor."
+SPEECH_EMPTY = "Hozircha ochiq vazifa yo'q."
+
+DONE_BUTTON = "✅ {n}. {title}"
+SPEAK_BUTTON = "🔊 Ovozda eshitish"
+TASK_DONE_TOAST = "Bajarildi ✅"
+TASK_NOT_FOUND_TOAST = "Bu vazifa topilmadi"
+
+NOT_UNDERSTOOD = "Kechirasiz, buni tushunmadim. Boshqacharoq yozib yoki aytib ko'ra olasizmi?"
+AI_ERROR = "Kechirasiz, hozir javob bera olmadim. Birozdan keyin qayta urinib ko'ring."
+VOICE_ERROR = "Ovozli xabarni tushuna olmadim. Iltimos, qaytadan yuboring yoki yozib yuboring."
+
+COMMAND_START = "Yordamchini boshlash"
+
+# {now} — joriy vaqt; qolgan jingalak qavslar JSON uchun ikkilangan.
+SYSTEM_PROMPT = """You are a personal task assistant bot. The user writes in Uzbek (Latin or Cyrillic).
+Current date and time (Asia/Tashkent, UTC+5): {now}.
+
+Classify the user's message and answer ONLY with one JSON object, no other text:
+{{"intent": "...", "title": "...", "due_at": "...", "reply": "..."}}
+
+intent values:
+- "add_task": the user asks to remember or do something. "title" = short task name in Uzbek Latin. "due_at" = ISO 8601 with +05:00 offset if a date or time is mentioned (resolve "bugun", "ertaga", "indinga", weekday names relative to the current date; if only a date is given use 09:00), otherwise null.
+- "list_tasks": the user asks to see the tasks, list or report as text.
+- "speak_report": the user asks to hear the tasks or report by voice (e.g. "ovozda ayt", "vaqtim yo'q, eshittir", "o'qib ber").
+- "chat": anything else (questions, greetings). "reply" = short helpful answer in Uzbek Latin, at most 3 sentences.
+- "unknown": the message is empty or meaningless.
+
+For intents other than "chat", "reply" = "". For intents other than "add_task", "title" and "due_at" = null."""
