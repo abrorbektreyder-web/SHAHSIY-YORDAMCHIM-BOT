@@ -13,8 +13,10 @@ from bot.ai_client import (
     AIError,
     Intent,
     parse_intent,
+    parse_ranking,
 )
 from bot.scheduler import TASHKENT
+from bot.search import SearchResult
 
 NOW = datetime(2026, 9, 28, 19, 0, tzinfo=TASHKENT)
 DUE = datetime(2026, 9, 29, 15, 0, tzinfo=TASHKENT)
@@ -79,6 +81,39 @@ def test_parse_chat_keeps_only_reply():
 
 def test_parse_chat_without_reply_is_unknown():
     assert parse_intent('{"intent":"chat","reply":""}').kind == "unknown"
+
+
+def test_parse_search_intent():
+    raw = '{"intent":"search","category":"hotel","query":"arzon mehmonxona","title":"Arzon mehmonxona","place":"Andijon"}'
+    assert parse_intent(raw) == Intent(
+        "search", title="Arzon mehmonxona", category="hotel", query="arzon mehmonxona", place="Andijon"
+    )
+
+
+def test_parse_search_defaults():
+    intent = parse_intent('{"intent":"search","category":"space","query":"Yosin surasi","place":""}')
+    assert intent == Intent("search", title="Yosin surasi", category="general", query="Yosin surasi", place=None)
+    assert parse_intent('{"intent":"search","query":""}').kind == "unknown"
+
+
+def test_parse_ranking_filters_bad_items():
+    raw = '{"items":[{"n":3,"note":" Eng arzon "},{"n":3,"note":"takror"},{"n":9},{"n":true},{"n":1}]}'
+    assert parse_ranking(raw, 3) == [(2, "Eng arzon"), (0, "")]
+    assert parse_ranking("buzuq", 3) == []
+
+
+async def test_rank_results_sends_numbered_results():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return chat_response('{"items":[{"n":2,"note":"To\'g\'ridan-to\'g\'ri reys"}]}')
+
+    results = [SearchResult("A", "https://a.com", "aaa"), SearchResult("B", "https://b.com", "bbb")]
+    assert await groq_client_with(handler).rank_results("Istanbul bilet", results) == [(1, "To'g'ridan-to'g'ri reys")]
+    user = seen["body"]["messages"][1]["content"]
+    assert "Istanbul bilet" in user and "[1] A" in user and "[2] B" in user and "https://b.com" in user
+    assert seen["body"]["response_format"] == {"type": "json_object"}
 
 
 def test_parse_list_filter():

@@ -5,6 +5,9 @@ from datetime import datetime
 
 # Ro'yxatning qaysi qismi ko'rsatiladi: hammasi / bajarilmagan / bajarilgan / bugun / muddati o'tgan.
 REPORT_FILTERS = ("all", "open", "done", "today", "overdue")
+SEARCH_CATEGORIES = ("flight", "hotel", "restaurant", "youtube", "general")
+# Bu toifalarda shahar aytilmasa, bot so'raydi.
+PLACE_CATEGORIES = ("hotel", "restaurant")
 
 
 @dataclass(frozen=True)

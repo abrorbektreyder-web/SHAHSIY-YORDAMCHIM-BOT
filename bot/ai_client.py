@@ -9,8 +9,9 @@ from datetime import datetime
 
 import httpx
 
-from bot.models import REPORT_FILTERS
+from bot.models import REPORT_FILTERS, SEARCH_CATEGORIES
 from bot.scheduler import TASHKENT
+from bot.search import SearchResult
 from content import uz
 
 BASE_URLS = {
@@ -25,7 +26,7 @@ DEFAULT_LLM_MODELS = {"openrouter": LLM_MODEL, "groq": GROQ_LLM_MODEL}
 TTS_MODEL = "google/gemini-3.8-flash-tts"
 TTS_VOICE = "Kore"
 
-INTENTS = ("add_task", "list_tasks", "speak_report", "chat", "unknown")
+INTENTS = ("add_task", "list_tasks", "speak_report", "search", "chat", "unknown")
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 # Fikrlovchi modellar (masalan Groq'dagi Qwen) javob oldiga <think> blok qo'yishi mumkin.
 _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
@@ -42,6 +43,16 @@ class Intent:
     due_at: datetime | None = None
     reply: str = ""
     filter: str = "all"
+    category: str = "general"
+    query: str = ""
+    place: str | None = None
+
+
+def _load_json(raw: str) -> object:
+    try:
+        return json.loads(_FENCE.sub("", _THINK.sub("", raw).strip()))
+    except json.JSONDecodeError:
+        return None
 
 
 def _parse_due(raw: object) -> datetime | None:
@@ -56,10 +67,7 @@ def _parse_due(raw: object) -> datetime | None:
 
 
 def parse_intent(raw: str) -> Intent:
-    try:
-        data = json.loads(_FENCE.sub("", _THINK.sub("", raw).strip()))
-    except json.JSONDecodeError:
-        return Intent("unknown")
+    data = _load_json(raw)
     if not isinstance(data, dict) or data.get("intent") not in INTENTS:
         return Intent("unknown")
 
@@ -75,7 +83,34 @@ def parse_intent(raw: str) -> Intent:
     if kind == "list_tasks":
         filter_ = data.get("filter")
         return Intent("list_tasks", filter=filter_ if filter_ in REPORT_FILTERS else "all")
+    if kind == "search":
+        query = _text(data.get("query"))
+        if not query:
+            return Intent("unknown")
+        category = data.get("category")
+        return Intent(
+            "search",
+            title=_text(data.get("title")) or query,
+            category=category if category in SEARCH_CATEGORIES else "general",
+            query=query,
+            place=_text(data.get("place")) or None,
+        )
     return Intent(kind)
+
+
+def parse_ranking(raw: str, count: int) -> list[tuple[int, str]]:
+    """AI saralashi → [(0 dan boshlanadigan natija indeksi, izoh)]; noto'g'ri bandlar tashlanadi."""
+    data = _load_json(raw)
+    items = data.get("items") if isinstance(data, dict) else None
+    ranking, seen = [], set()
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        n = item.get("n")
+        if isinstance(n, int) and not isinstance(n, bool) and 1 <= n <= count and n not in seen:
+            seen.add(n)
+            ranking.append((n - 1, _text(item.get("note"))))
+    return ranking
 
 
 def _text(value: object) -> str:
@@ -168,11 +203,33 @@ class AIClient:
                 "temperature": 0,
             },
         )
+        return parse_intent(self._content(resp))
+
+    async def rank_results(self, request: str, results: list[SearchResult]) -> list[tuple[int, str]]:
+        numbered = "\n\n".join(
+            f"[{i}] {r.title}\n{r.url}\n{r.content[:400]}" for i, r in enumerate(results, start=1)
+        )
+        resp = await self._post(
+            self._llm_provider,
+            "/chat/completions",
+            json={
+                "model": self._llm_model,
+                "messages": [
+                    {"role": "system", "content": uz.RANK_PROMPT},
+                    {"role": "user", "content": f"So'rov: {request}\n\nNatijalar:\n{numbered}"},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0,
+            },
+        )
+        return parse_ranking(self._content(resp), len(results))
+
+    @staticmethod
+    def _content(resp: httpx.Response) -> str:
         try:
-            raw = resp.json()["choices"][0]["message"]["content"]
+            return resp.json()["choices"][0]["message"]["content"] or ""
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             raise AIError(f"chat javobi kutilmagan shaklda: {resp.text[:200]}") from exc
-        return parse_intent(raw or "")
 
     async def speak(self, text: str) -> bytes:
         resp = await self._post(
