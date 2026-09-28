@@ -109,7 +109,17 @@ async def run() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
     config = load_config()
     await db.init_db(config.database_url, config.db_schema)
-    ai = AIClient(config.openrouter_api_key)
+    ai = AIClient(
+        openrouter_key=config.openrouter_api_key,
+        groq_key=config.groq_api_key,
+        llm_provider=config.llm_provider,
+        llm_model=config.llm_model,
+        stt_provider=config.stt_provider,
+    )
+    log.info(
+        "AI: matn=%s, ovoz→matn=%s, ovozli javob=%s",
+        config.llm_provider, config.stt_provider, "yoqilgan" if ai.can_speak else "o'chirilgan",
+    )
     bot, dp = build_bot(config, ai)
     await _setup_commands(bot, config)
     reporter = asyncio.create_task(daily_report_loop(make_daily_sender(bot, config.owner_id)))

@@ -33,6 +33,41 @@ def test_missing_openrouter_key_fails(tmp_path):
         load_config(write_env(tmp_path, values))
 
 
+GROQ = {
+    "BOT_TOKEN": "123:abc",
+    "OWNER_ID": "42",
+    "DATABASE_URL": "postgresql://u:p@h:5432/db",
+    "GROQ_API_KEY": "gsk-test",
+    "LLM_PROVIDER": "groq",
+    "STT_PROVIDER": "groq",
+}
+
+
+def test_groq_only_setup_needs_no_openrouter_key(tmp_path):
+    cfg = load_config(write_env(tmp_path, GROQ))
+    assert cfg.groq_api_key == "gsk-test"
+    assert cfg.openrouter_api_key == ""
+    assert cfg.llm_provider == "groq"
+    assert cfg.stt_provider == "groq"
+    assert cfg.llm_model == ""
+
+
+def test_llm_model_override(tmp_path):
+    cfg = load_config(write_env(tmp_path, {**GROQ, "LLM_MODEL": "openai/gpt-oss-20b"}))
+    assert cfg.llm_model == "openai/gpt-oss-20b"
+
+
+def test_groq_provider_requires_groq_key(tmp_path):
+    values = {k: v for k, v in GROQ.items() if k != "GROQ_API_KEY"}
+    with pytest.raises(ConfigError, match="GROQ_API_KEY"):
+        load_config(write_env(tmp_path, values))
+
+
+def test_unknown_provider_rejected(tmp_path):
+    with pytest.raises(ConfigError, match="LLM_PROVIDER"):
+        load_config(write_env(tmp_path, {**GROQ, "LLM_PROVIDER": "openai"}))
+
+
 def test_owner_id_must_be_int(tmp_path):
     with pytest.raises(ConfigError, match="OWNER_ID"):
         load_config(write_env(tmp_path, {**BASE, "OWNER_ID": "abrorbek"}))

@@ -33,9 +33,9 @@ Foydalanuvchi kundalik ishlarini (uchrashuv, ishlar, eslatmalar) yozib boradigan
 | Dasturlash tili | **Python 3.12** | Telegram bot va AI integratsiyalari uchun eng keng qo'llab-quvvatlanadigan til, tayyor kutubxonalar ko'p |
 | Telegram bilan aloqa | **`aiogram` 3.x** (async) | Egasining TARGET-AUDIT loyihasida Render'da sinalgan; `config.py`, `main.py` (polling/webhook + `/health`) patternlari qayta ishlatiladi |
 | AI modellar provayderi | **OpenRouter API** (`https://openrouter.ai/api/v1`) | Bitta API kaliti orqali bir nechta AI modelga (matn, nutq-matn, matn-nutq) kirish imkonini beradi |
-| Nutqni matnga o'girish (STT) | **`google/gemini-3.5-transcribe`** (OpenRouter orqali) | Maxsus transkripsiya modeli, O'zbek tili kiritilgan ovozli xabarlarni matnga o'giradi |
-| Matnni tushunish / suhbat | **`google/gemini-3.5-flash-lite`** (OpenRouter orqali) | Tez va arzon, niyatni aniqlash (vazifami/ro'yxatmi/oddiy gapmi) uchun yetarli sifatli |
-| Matnni nutqqa o'girish (TTS) | **`google/gemini-3.8-flash-tts`** (OpenRouter orqali) | Tabiiy ovozli javob generatsiyasi uchun |
+| Nutqni matnga o'girish (STT) | **Sinov davri: `whisper-large-v3` (Groq, bepul)**; keyin ixtiyoriy `google/gemini-3.5-transcribe` (OpenRouter) | Whisper o'zbek tilini va Telegram `ogg` formatini qo'llaydi; Groq bepul tarifida kuniga 2000 so'rov. `STT_PROVIDER` bilan tanlanadi |
+| Matnni tushunish / suhbat | **Sinov davri: `qwen/qwen3.8-27b` (Groq, bepul)**; keyin ixtiyoriy `google/gemini-3.5-flash-lite` (OpenRouter) | Groq juda tez, bepul tarifida kuniga 1000 so'rov, JSON rejimini qo'llaydi. `LLM_PROVIDER` / `LLM_MODEL` bilan tanlanadi |
+| Matnni nutqqa o'girish (TTS) | **`google/gemini-3.8-flash-tts`** (OpenRouter orqali, pullik) | Groq'da o'zbekcha TTS yo'q. `OPENROUTER_API_KEY` bo'sh bo'lsa, bot barcha javoblarni matnda yuboradi |
 | Ma'lumot saqlash | **Supabase (PostgreSQL)**, `asyncpg` orqali, alohida `vazifa` sxemasi | Render bepul tarifida disk vaqtinchalik (qayta ishga tushganda fayl o'chadi); egasida Supabase hisobi allaqachon bor, TARGET-AUDIT'ning `bot` sxemasiga tegmaydi |
 | Vaqt rejalashtirish | **`asyncio`** fon vazifasi (08:00 gacha kutadi, yuboradi, takrorlaydi) | Qo'shimcha kutubxonasiz, bitta foydalanuvchi uchun yetarli |
 | Muhit o'zgaruvchilari | **`.env` (lokal) / Render Environment** | Maxfiy kalitlarni kodga yozmaslik uchun |
@@ -193,7 +193,10 @@ Jadval bot birinchi ishga tushganda `init_db()` orqali avtomatik yaratiladi (TAR
 | Nomi | Tavsif | Qayerdan olinadi |
 |---|---|---|
 | `BOT_TOKEN` | Yangi botning Telegram tokeni (TARGET-AUDIT botidan **alohida** bot) | @BotFather |
-| `OPENROUTER_API_KEY` | OpenRouter API kaliti | openrouter.ai → Keys |
+| `GROQ_API_KEY` | Groq API kaliti (bepul) | console.groq.com → API Keys |
+| `LLM_PROVIDER` / `STT_PROVIDER` | `groq` yoki `openrouter` | Sinov davrida ikkalasi `groq` |
+| `LLM_MODEL` | Matn modeli (bo'sh — provayder standarti) | `qwen/qwen3.8-27b` |
+| `OPENROUTER_API_KEY` | OpenRouter API kaliti — **ixtiyoriy**, faqat ovozli javob (TTS) yoki OpenRouter provayderi uchun | openrouter.ai → Keys |
 | `OWNER_ID` | Egasining Telegram user ID raqami | @userinfobot (TARGET-AUDIT'dagi qiymat bilan bir xil) |
 | `DATABASE_URL` | Supabase ulanish manzili | Supabase → Project Settings → Database (TARGET-AUDIT'dagi bilan bir xil bo'lishi mumkin) |
 | `DB_SCHEMA` | Sxema nomi | `vazifa` (o'zgarmas) |
@@ -259,6 +262,8 @@ Bular hech qachon kodga yozilmaydi — faqat Render servisining **Environment** 
 - OpenRouter xarajati — har bir ovozli xabar 3 ta model chaqiruvini (transkripsiya, tushunish, ovoz) talab qiladi. Shaxsiy foydalanishda oyiga bir necha dollardan oshmasligi kutiladi; OpenRouter panelida limit qo'yish tavsiya etiladi.
 - Telegram ovozli xabari `ogg/opus` formatida keladi. OpenRouter hujjatida `ogg` qabul qilinadi deb yozilgan, lekin `opus` alohida tilga olinmagan. O'zbek tilini `gemini-3.5-transcribe` tanishi ham hujjatda tasdiqlanmagan. Ikkalasi 9-blokda haqiqiy ovoz bilan tekshiriladi. Ishlamasa, zaxira variant: `openai/whisper-large-v3` (o'zbek tilini qo'llaydi) yoki ovozni `mp3`ga o'girish.
 
+- Groq bepul tarifi limitlari (2026-09 holatiga): `qwen/qwen3.8-27b` — daqiqasiga 30, kuniga 1000 so'rov; `whisper-large-v3` — daqiqasiga 20, kuniga 2000 so'rov, soatiga 7200 soniya audio. Groq'dagi Qwen 3.8 "fikrlovchi" model: JSON rejimida fikrlash matni javobga aralashmaydi, lekin javob vaqtini oshirishi mumkin — 9-blokda o'lchanadi.
+
 ---
 
 ## 12. BAJARILISH HOLATI
@@ -275,6 +280,7 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 6 | Bot mantiqi: vazifa / ro'yxat / suhbat (`logic.py`) | ☑ | 6/6 test o'tdi |
 | 7 | Telegram handlerlar va tugmalar (`handlers.py`, `keyboards.py`) | ☑ | 3/3 tugma testi o'tdi; handlerlar xatosiz yuklandi (haqiqiy Telegram — 9-blokda) |
 | 8 | Ishga tushirish va Render sozlamasi (`main.py`, `render.yaml`) | ☑ | 3/3 test o'tdi; umumiy: 47 o'tdi, 5 ta (Supabase) kutmoqda |
+| 8++ | Groq qo'llab-quvvatlashi: bepul matn (Qwen 3.8) va ovoz→matn (Whisper), provayder `.env` orqali tanlanadi, OpenRouter kaliti ixtiyoriy | ☑ | 9 ta yangi test; umumiy: 66 o'tdi (Supabase bilan) |
 | 8+ | Kod tekshiruvi (code review) tuzatishlari: webhook kaliti formati, logga sir tushishi, qayta ishga tushishda xabar yo'qolishi, kunlik hisobot takrorlanishi, ovoz/tugma xatolari | ☑ | 6 ta yangi test; umumiy: 52 o'tdi, 5 ta (Supabase) kutmoqda |
 | 9 | Lokal sinov: haqiqiy bot bilan 1 ta matnli va 1 ta ovozli vazifa | ☐ | — |
 | 10 | GitHub'ga yuklash, Render'ga joylash, UptimeRobot | ☐ | — |

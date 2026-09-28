@@ -18,8 +18,12 @@ class ConfigError(Exception):
 class Config:
     bot_token: str
     owner_id: int
-    openrouter_api_key: str
     database_url: str
+    openrouter_api_key: str = ""
+    groq_api_key: str = ""
+    llm_provider: str = "openrouter"
+    llm_model: str = ""
+    stt_provider: str = "openrouter"
     db_schema: str = "vazifa"
     mode: str = "polling"
     webhook_base_url: str = ""
@@ -30,6 +34,7 @@ class Config:
 Getter = Callable[[str], str]
 
 MODES = ("polling", "webhook")
+PROVIDER_KEYS = {"openrouter": "OPENROUTER_API_KEY", "groq": "GROQ_API_KEY"}
 # Sxema nomi SQL'ga to'g'ridan-to'g'ri qo'yiladi (identifikatorni parametr qilib bo'lmaydi).
 SCHEMA_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
 
@@ -92,11 +97,27 @@ def load_config(env_path: str | None = None) -> Config:
             f"DB_SCHEMA faqat kichik lotin harf, raqam va _ bo'lishi mumkin, keldi: {schema!r}"
         )
 
+    providers = {}
+    for key in ("LLM_PROVIDER", "STT_PROVIDER"):
+        providers[key] = (get(key) or "openrouter").lower()
+        if providers[key] not in PROVIDER_KEYS:
+            raise ConfigError(
+                f"{key} faqat {' yoki '.join(PROVIDER_KEYS)} bo'lishi mumkin, keldi: {providers[key]!r}"
+            )
+    # Tanlangan provayderlarning kaliti majburiy; OpenRouter kaliti bo'lmasa
+    # bot faqat ovozli javobni o'chiradi.
+    for provider in set(providers.values()):
+        _require(get, PROVIDER_KEYS[provider])
+
     return Config(
         bot_token=_require(get, "BOT_TOKEN"),
         owner_id=_require_int(get, "OWNER_ID"),
-        openrouter_api_key=_require(get, "OPENROUTER_API_KEY"),
         database_url=_require(get, "DATABASE_URL"),
+        openrouter_api_key=get("OPENROUTER_API_KEY"),
+        groq_api_key=get("GROQ_API_KEY"),
+        llm_provider=providers["LLM_PROVIDER"],
+        llm_model=get("LLM_MODEL"),
+        stt_provider=providers["STT_PROVIDER"],
         db_schema=schema,
         mode=mode,
         webhook_base_url=base_url,

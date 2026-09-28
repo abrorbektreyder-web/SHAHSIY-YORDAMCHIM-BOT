@@ -14,6 +14,12 @@ services:
         value: webhook
       - key: DB_SCHEMA
         value: vazifa
+      - key: LLM_PROVIDER
+        value: groq
+      - key: STT_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
       - key: WEBHOOK_SECRET
         generateValue: true
       - key: BOT_TOKEN

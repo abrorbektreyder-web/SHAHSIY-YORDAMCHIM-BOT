@@ -110,6 +110,9 @@ async def send_reply(message: Message, reply: Reply, ai: AIClient) -> None:
 
 
 async def _send_voice(message: Message, text: str, ai: AIClient) -> None:
+    if not ai.can_speak:
+        await message.answer(escape(text))
+        return
     try:
         audio = await ai.speak(text)
         await message.answer_voice(BufferedInputFile(audio, filename="javob.mp3"))

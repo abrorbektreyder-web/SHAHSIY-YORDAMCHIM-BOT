@@ -21,7 +21,17 @@ DUE = datetime(2026, 9, 29, 15, 0, tzinfo=TASHKENT)
 
 
 def client_with(handler):
-    return AIClient("sk-test", http=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    return AIClient(openrouter_key="sk-test", http=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+
+
+def groq_client_with(handler, **kwargs):
+    return AIClient(
+        groq_key="gsk-test",
+        llm_provider="groq",
+        stt_provider="groq",
+        http=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        **kwargs,
+    )
 
 
 def chat_response(content):
@@ -69,6 +79,11 @@ def test_parse_chat_keeps_only_reply():
 
 def test_parse_chat_without_reply_is_unknown():
     assert parse_intent('{"intent":"chat","reply":""}').kind == "unknown"
+
+
+def test_parse_strips_think_block():
+    raw = '<think>foydalanuvchi ro\'yxat so\'rayapti</think>\n{"intent":"list_tasks"}'
+    assert parse_intent(raw) == Intent("list_tasks")
 
 
 def test_parse_non_string_fields_are_unknown():
@@ -172,3 +187,64 @@ async def test_speak_empty_audio_raises():
     ai = client_with(lambda r: httpx.Response(200, content=b""))
     with pytest.raises(AIError):
         await ai.speak("x")
+
+
+# --- Groq ---
+
+async def test_groq_transcribe_uploads_ogg_to_whisper():
+    seen = {}
+
+    def handler(request):
+        seen["url"] = str(request.url)
+        seen["auth"] = request.headers["Authorization"]
+        seen["type"] = request.headers["Content-Type"]
+        seen["body"] = request.read()
+        return httpx.Response(200, json={"text": " Indinga bankka borish "})
+
+    assert await groq_client_with(handler).transcribe(b"OGGDATA") == "Indinga bankka borish"
+    assert seen["url"] == "https://api.groq.com/openai/v1/audio/transcriptions"
+    assert seen["auth"] == "Bearer gsk-test"
+    assert seen["type"].startswith("multipart/form-data")
+    body = seen["body"]
+    assert b'name="model"\r\n\r\nwhisper-large-v3\r\n' in body
+    assert b'name="language"\r\n\r\nuz\r\n' in body
+    assert b'filename="voice.ogg"' in body
+    assert b"OGGDATA" in body
+
+
+async def test_groq_understand_uses_groq_and_default_qwen():
+    seen = {}
+
+    def handler(request):
+        seen["url"] = str(request.url)
+        seen["auth"] = request.headers["Authorization"]
+        seen["body"] = json.loads(request.content)
+        return chat_response('{"intent":"list_tasks"}')
+
+    assert await groq_client_with(handler).understand("ro'yxat", NOW) == Intent("list_tasks")
+    assert seen["url"] == "https://api.groq.com/openai/v1/chat/completions"
+    assert seen["auth"] == "Bearer gsk-test"
+    assert seen["body"]["model"] == "qwen/qwen3.8-27b"
+    assert seen["body"]["response_format"] == {"type": "json_object"}
+
+
+async def test_llm_model_override_is_sent():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return chat_response('{"intent":"list_tasks"}')
+
+    await groq_client_with(handler, llm_model="openai/gpt-oss-20b").understand("x", NOW)
+    assert seen["body"]["model"] == "openai/gpt-oss-20b"
+
+
+async def test_speak_disabled_without_openrouter_key_makes_no_request():
+    def handler(request):
+        raise AssertionError("tarmoqqa so'rov ketmasligi kerak")
+
+    ai = groq_client_with(handler)
+    assert ai.can_speak is False
+    with pytest.raises(AIError):
+        await ai.speak("salom")
+    assert client_with(handler).can_speak is True

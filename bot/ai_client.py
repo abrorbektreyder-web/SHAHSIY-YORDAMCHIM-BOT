@@ -1,4 +1,4 @@
-"""OpenRouter orqali uchta AI xizmati: nutq→matn, matnni tushunish, matn→nutq."""
+"""Uchta AI xizmati: nutq→matn, matnni tushunish (OpenRouter yoki Groq), matn→nutq (OpenRouter)."""
 from __future__ import annotations
 
 import base64
@@ -12,14 +12,22 @@ import httpx
 from bot.scheduler import TASHKENT
 from content import uz
 
-BASE_URL = "https://openrouter.ai/api/v1"
+BASE_URLS = {
+    "openrouter": "https://openrouter.ai/api/v1",
+    "groq": "https://api.groq.com/openai/v1",
+}
 STT_MODEL = "google/gemini-3.5-transcribe"
+GROQ_STT_MODEL = "whisper-large-v3"
 LLM_MODEL = "google/gemini-3.5-flash-lite"
+GROQ_LLM_MODEL = "qwen/qwen3.8-27b"
+DEFAULT_LLM_MODELS = {"openrouter": LLM_MODEL, "groq": GROQ_LLM_MODEL}
 TTS_MODEL = "google/gemini-3.8-flash-tts"
 TTS_VOICE = "Kore"
 
 INTENTS = ("add_task", "list_tasks", "speak_report", "chat", "unknown")
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
+# Fikrlovchi modellar (masalan Groq'dagi Qwen) javob oldiga <think> blok qo'yishi mumkin.
+_THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 class AIError(Exception):
@@ -47,7 +55,7 @@ def _parse_due(raw: object) -> datetime | None:
 
 def parse_intent(raw: str) -> Intent:
     try:
-        data = json.loads(_FENCE.sub("", raw.strip()))
+        data = json.loads(_FENCE.sub("", _THINK.sub("", raw).strip()))
     except json.JSONDecodeError:
         return Intent("unknown")
     if not isinstance(data, dict) or data.get("intent") not in INTENTS:
@@ -70,13 +78,37 @@ def _text(value: object) -> str:
 
 
 class AIClient:
-    def __init__(self, api_key: str, http: httpx.AsyncClient | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        openrouter_key: str = "",
+        groq_key: str = "",
+        llm_provider: str = "openrouter",
+        llm_model: str = "",
+        stt_provider: str = "openrouter",
+        http: httpx.AsyncClient | None = None,
+    ) -> None:
         self._http = http or httpx.AsyncClient(timeout=60)
-        self._headers = {"Authorization": f"Bearer {api_key}"}
+        self._keys = {"openrouter": openrouter_key, "groq": groq_key}
+        self._llm_provider = llm_provider
+        self._llm_model = llm_model or DEFAULT_LLM_MODELS[llm_provider]
+        self._stt_provider = stt_provider
 
-    async def _post(self, path: str, payload: dict) -> httpx.Response:
+    @property
+    def can_speak(self) -> bool:
+        # Matn→nutq faqat OpenRouter'da (pullik); kalit bo'lmasa javoblar matnda qoladi.
+        return bool(self._keys["openrouter"])
+
+    async def _post(self, provider: str, path: str, **kwargs) -> httpx.Response:
+        key = self._keys[provider]
+        if not key:
+            raise AIError(f"{provider}: API kaliti berilmagan")
         try:
-            resp = await self._http.post(f"{BASE_URL}{path}", json=payload, headers=self._headers)
+            resp = await self._http.post(
+                f"{BASE_URLS[provider]}{path}",
+                headers={"Authorization": f"Bearer {key}"},
+                **kwargs,
+            )
         except httpx.HTTPError as exc:
             raise AIError(f"{path}: tarmoq xatosi: {exc}") from exc
         if resp.status_code != 200:
@@ -84,14 +116,23 @@ class AIClient:
         return resp
 
     async def transcribe(self, audio: bytes, fmt: str = "ogg") -> str:
-        resp = await self._post(
-            "/audio/transcriptions",
-            {
-                "model": STT_MODEL,
-                "input_audio": {"data": base64.b64encode(audio).decode(), "format": fmt},
-                "language": "uz",
-            },
-        )
+        if self._stt_provider == "groq":
+            resp = await self._post(
+                "groq",
+                "/audio/transcriptions",
+                data={"model": GROQ_STT_MODEL, "language": "uz", "response_format": "json"},
+                files={"file": (f"voice.{fmt}", audio)},
+            )
+        else:
+            resp = await self._post(
+                "openrouter",
+                "/audio/transcriptions",
+                json={
+                    "model": STT_MODEL,
+                    "input_audio": {"data": base64.b64encode(audio).decode(), "format": fmt},
+                    "language": "uz",
+                },
+            )
         try:
             text = _text(resp.json().get("text"))
         except (AttributeError, ValueError) as exc:
@@ -102,9 +143,10 @@ class AIClient:
 
     async def understand(self, text: str, now: datetime) -> Intent:
         resp = await self._post(
+            self._llm_provider,
             "/chat/completions",
-            {
-                "model": LLM_MODEL,
+            json={
+                "model": self._llm_model,
                 "messages": [
                     {
                         "role": "system",
@@ -124,8 +166,9 @@ class AIClient:
 
     async def speak(self, text: str) -> bytes:
         resp = await self._post(
+            "openrouter",
             "/audio/speech",
-            {"model": TTS_MODEL, "input": text, "voice": TTS_VOICE, "response_format": "mp3"},
+            json={"model": TTS_MODEL, "input": text, "voice": TTS_VOICE, "response_format": "mp3"},
         )
         if not resp.content:
             raise AIError("ovoz bo'sh qaytdi")
