@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from collections import deque
 from html import escape
 
 from aiogram import Bot, F, Router
@@ -39,6 +40,8 @@ log = logging.getLogger(__name__)
 _pending: dict[str, Intent] = {}  # "search" → shahar kutayotgan qidiruv
 _more_pages: dict[int, str] = {}  # xabar id → "Yana ko'rsat" sahifasi
 MORE_PAGES_LIMIT = 50
+# "Eng arzonini top", "yana qidir" kabi gaplar oldingi so'rovga bog'lanishi uchun.
+_history: deque[dict] = deque(maxlen=8)
 NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
 
@@ -93,6 +96,7 @@ def build_router(owner_id: int) -> Router:
             log.exception("Joylashuv bo'yicha qidiruvda kutilmagan xato")
             await message.answer(uz.SEARCH_ERROR)
             return
+        _remember(f"📍 {city}", reply)
         await send_reply(message, reply, ai)
 
     @router.callback_query(F.data == SEARCH_MORE)
@@ -154,7 +158,7 @@ async def _process(message: Message, text: str, ai: AIClient, searcher) -> None:
             )
             reply = await run_search(pending, place, ai, searcher)
         else:
-            reply = await handle_text(text, ai, db, now_tashkent(), searcher)
+            reply = await handle_text(text, ai, db, now_tashkent(), searcher, list(_history))
     except AIError as exc:
         log.warning("AI xatosi: %s", exc)
         await message.answer(uz.AI_ERROR)
@@ -163,7 +167,14 @@ async def _process(message: Message, text: str, ai: AIClient, searcher) -> None:
         log.exception("Xabarni qayta ishlashda kutilmagan xato")
         await message.answer(uz.AI_ERROR)
         return
+    _remember(text, reply)
     await send_reply(message, reply, ai)
+
+
+def _remember(user_text: str, reply: Reply) -> None:
+    _history.append({"role": "user", "content": user_text})
+    if reply.text:
+        _history.append({"role": "assistant", "content": views.memo(reply.text)})
 
 
 async def send_reply(message: Message, reply: Reply, ai: AIClient) -> None:

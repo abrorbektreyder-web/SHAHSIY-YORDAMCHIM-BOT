@@ -120,6 +120,16 @@ def _text(value: object) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def _with_history(text: str, history) -> str:
+    # Bot javoblari JSON emas: ularni assistant navbati qilib bersak, model JSON o'rniga
+    # matn yoza boshlaydi (Groq json_validate_failed). Shuning uchun faqat kontekst sifatida.
+    if not history:
+        return text
+    speaker = {"user": "Foydalanuvchi", "assistant": "Bot"}
+    lines = [f"{speaker.get(m['role'], m['role'])}: {m['content']}" for m in history]
+    return "Oldingi suhbat:\n" + "\n".join(lines) + f"\n\nYangi xabar: {text}"
+
+
 def _retry_after(resp: httpx.Response) -> float | None:
     try:
         return float(resp.headers.get("retry-after", ""))
@@ -202,7 +212,8 @@ class AIClient:
             raise AIError("transkripsiya bo'sh qaytdi")
         return text
 
-    async def understand(self, text: str, now: datetime) -> Intent:
+    async def understand(self, text: str, now: datetime, history=()) -> Intent:
+        """history — oldingi xabarlar [{"role": "user"|"assistant", "content": ...}], eskisidan yangisiga."""
         resp = await self._post(
             self._llm_provider,
             "/chat/completions",
@@ -213,7 +224,7 @@ class AIClient:
                         "role": "system",
                         "content": uz.SYSTEM_PROMPT.format(now=now.isoformat(timespec="minutes")),
                     },
-                    {"role": "user", "content": text},
+                    {"role": "user", "content": _with_history(text, history)},
                 ],
                 "response_format": {"type": "json_object"},
                 "temperature": 0,

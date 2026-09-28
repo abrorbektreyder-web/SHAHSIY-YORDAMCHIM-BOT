@@ -25,8 +25,9 @@ class FakeAI:
         self.rank_error = rank_error
         self.seen = []
 
-    async def understand(self, text, now):
+    async def understand(self, text, now, history=()):
         self.seen.append((text, now))
+        self.history = list(history)
         return self.intent
 
     async def rank_results(self, request, results):
@@ -183,3 +184,10 @@ def test_looks_like_place():
     assert looks_like_place("  Nyu York shahri ")
     assert not looks_like_place("")
     assert not looks_like_place("ertaga soat 10 da bankka borish")
+
+
+async def test_history_is_passed_to_ai():
+    ai = FakeAI(Intent("unknown"))
+    history = [{"role": "user", "content": "Toshkent Madina chipta"}]
+    await handle_text("eng arzonini top", ai, FakeStore(), NOW, history=history)
+    assert ai.history == history

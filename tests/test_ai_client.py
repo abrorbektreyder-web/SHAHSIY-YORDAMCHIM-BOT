@@ -333,3 +333,52 @@ async def test_llm_requests_cap_output_tokens():
     await ai.understand("x", NOW)
     await ai.rank_results("x", [SearchResult("A", "https://a.com")])
     assert all(0 < body["max_tokens"] <= 400 for body in bodies)
+
+
+async def test_understand_sends_conversation_history_before_new_message():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return chat_response('{"intent":"list_tasks"}')
+
+    history = [
+        {"role": "user", "content": "Toshkent Madina 15-oktabr avia chipta qidir"},
+        {"role": "assistant", "content": "Toshkent–Madina chiptalari: Aviasales, Google Travel"},
+    ]
+    await groq_client_with(handler).understand("O'zing qidir va eng arzonini top", NOW, history)
+    messages = seen["body"]["messages"]
+    # Bot javoblari JSON emas — ularni assistant navbati qilib bersak, model JSON o'rniga matn yozadi
+    # (Groq: json_validate_failed). Shuning uchun suhbat faqat kontekst sifatida user xabariga qo'shiladi.
+    assert [m["role"] for m in messages] == ["system", "user"]
+    user = messages[1]["content"]
+    assert "Foydalanuvchi: Toshkent Madina 15-oktabr avia chipta qidir" in user
+    assert "Bot: Toshkent–Madina chiptalari: Aviasales, Google Travel" in user
+    assert user.endswith("Yangi xabar: O'zing qidir va eng arzonini top")
+
+
+async def test_understand_without_history_sends_plain_message():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return chat_response('{"intent":"list_tasks"}')
+
+    await groq_client_with(handler).understand("salom", NOW)
+    assert seen["body"]["messages"][1] == {"role": "user", "content": "salom"}
+
+
+async def test_prompts_never_deny_search_and_handle_cheapest():
+    seen = []
+
+    def handler(request):
+        seen.append(json.loads(request.content)["messages"][0]["content"])
+        return chat_response('{"intent":"list_tasks","items":[]}')
+
+    ai = groq_client_with(handler)
+    await ai.understand("x", NOW)
+    await ai.rank_results("x", [SearchResult("A", "https://a.com")])
+    system, rank = seen
+    assert "never say that you cannot search" in system
+    assert "garbled" in system
+    assert "cheapest" in rank

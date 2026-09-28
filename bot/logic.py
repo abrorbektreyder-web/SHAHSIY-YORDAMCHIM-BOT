@@ -68,8 +68,8 @@ async def run_search(intent: Intent, place: str | None, ai, searcher) -> Reply:
     return Reply("search", pages[0], more=pages[1] if len(pages) > 1 else "")
 
 
-async def handle_text(text: str, ai, store, now: datetime, searcher=None) -> Reply:
-    intent = await ai.understand(text, now)
+async def handle_text(text: str, ai, store, now: datetime, searcher=None, history=()) -> Reply:
+    intent = await ai.understand(text, now, history)
     if intent.kind == "add_task":
         await store.add_task(intent.title, intent.due_at)
         return Reply("voice", views.task_added_text(intent.title, intent.due_at))

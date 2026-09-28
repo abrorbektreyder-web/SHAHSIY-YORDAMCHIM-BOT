@@ -145,3 +145,9 @@ def test_task_added_text():
         views.task_added_text("Shifokor", DUE)
         == "Vazifa qo'shildi: Shifokor. Muddati: 29.09.2026 15:00."
     )
+
+
+def test_memo_strips_html_and_trims():
+    text = "✈️ <b>Toshkent → Madina</b>\n\n1. <b>Aviasales</b>\n🔗 <a href=\"https://aviasales.uz\">aviasales.uz</a>"
+    assert views.memo(text) == "✈️ Toshkent → Madina 1. Aviasales 🔗 aviasales.uz"
+    assert len(views.memo("a " * 500)) <= 300

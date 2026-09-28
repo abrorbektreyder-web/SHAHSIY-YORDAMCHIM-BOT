@@ -38,7 +38,8 @@ HEARD = "🎤 <i>Eshitdim:</i> {text}"
 # Whisper'ga kontekst: o'zbekcha lotin imlosi va botda tez-tez uchraydigan so'zlar.
 STT_PROMPT = (
     "Ertaga soat 15:00 da shifokorga borish. Indinga bankka borish. "
-    "Dushanba kuni uchrashuv. Vazifalarim qanday? Vaqtim yo'q, ovozda aytib ber."
+    "Dushanba kuni uchrashuv. Vazifalarim qanday? Vaqtim yo'q, ovozda aytib ber. "
+    "Toshkent Madina 15-oktyabr avia chipta qidir. Samarqandda arzon mehmonxona top."
 )
 
 SEARCH_DISABLED = "Internetdan qidirish hali yoqilmagan."
@@ -70,13 +71,16 @@ intent values:
 - "add_task": the user asks to remember or do something. "title" = short task name in Uzbek Latin. "due_at" = ISO 8601 with +05:00 offset if a date or time is mentioned (resolve "bugun", "ertaga", "indinga", weekday names relative to the current date; if only a date is given use 09:00), otherwise null.
 - "list_tasks": the user asks to see the tasks, list or report as text. Also set "filter": "done" (completed tasks), "open" (not completed), "today" (today's tasks), "overdue" (missed deadlines), or "all" (everything / not specified).
 - "speak_report": the user asks to hear the tasks or report by voice (e.g. "ovozda ayt", "vaqtim yo'q, eshittir", "o'qib ber").
-- "search": the user asks to find or look up something on the internet: flights ("flight"), hotels ("hotel"), restaurants or cafes ("restaurant"), YouTube videos, films, songs or Quran surahs ("youtube"), or any facts, prices, news or weather ("general"). "category" = one of those. "query" = a concise web search query with all details (route, real dates resolved from the current date, class, passengers, price level, city if given). "title" = short Uzbek Latin description of what is searched. "place" = the city if the user named one, otherwise null (never guess).
-- "chat": anything else (questions, greetings). "reply" = short helpful answer in Uzbek Latin, at most 3 sentences. You cannot browse by yourself and cannot book or buy anything; requests to find something online are "search", not "chat". Never invent prices, flights, hotels, restaurants, schedules, news, weather or other live data in "reply". If the user asks to book or buy something, reply that booking is not available yet and offer to search for options instead.
-- "unknown": the message is empty or meaningless.
+- "search": the user asks to find or look up something on the internet: flights ("flight"), hotels ("hotel"), restaurants or cafes ("restaurant"), YouTube videos, films, songs or Quran surahs ("youtube"), or any facts, prices, news or weather ("general"). "category" = one of those. "query" = a concise web search query with all details (route, real dates resolved from the current date, class, passengers, price level, city if given). "title" = short Uzbek Latin description of what is searched (e.g. "Toshkent–Madina aviachipta, 15-oktabr", "Samarqandda arzon mehmonxona"). "place" = for "hotel" and "restaurant" only: the city if the user named one, otherwise null (never guess); for other categories always null.
+- "chat": anything else (questions, greetings). "reply" = short helpful answer in Uzbek Latin, at most 3 sentences. You CAN search the internet through the "search" intent, so never say that you cannot search: if the user wants something found, answer with "search"; only if key details are missing and are not in the previous messages, use "chat" to ask for them. You cannot book or buy anything: if asked, say booking is not available yet and offer to search for options. Never invent prices, flights, hotels, restaurants, schedules, news, weather or other live data in "reply".
+- "unknown": the message is empty, garbled or makes no sense (e.g. badly recognized speech). Do not invent a task from garbled text.
+
+The message may start with "Oldingi suhbat:" (previous conversation, for context only) followed by "Yangi xabar:" (the new message you must classify). Always answer with the JSON object for the new message. If the new message refers to the previous conversation (e.g. "o'zing qidir", "eng arzonini top", "yana qidir", "boshqasini ko'rsat"), resolve it into a complete request using that context. If the user wants the cheapest option, include "cheapest" in "query".
 
 For intents other than "chat", "reply" = "". For intents other than "add_task" and "search", "title" = null. For intents other than "add_task", "due_at" = null. For intents other than "list_tasks", "filter" = null. For intents other than "search", "category", "query" and "place" = null."""
 
 RANK_PROMPT = """You rank web search results for a personal assistant bot. The user writes in Uzbek.
 Pick up to 6 results that best match the request, best first; skip irrelevant ones.
 Answer ONLY with JSON: {"items": [{"n": <result number>, "note": "<one short sentence in Uzbek Latin, at most 15 words>"}]}
-The note says what the result offers. Mention prices, ratings, dates or addresses ONLY if they appear in the result text. Never invent facts."""
+The note says what the result offers. Mention prices, ratings, dates or addresses ONLY if they appear in the result text. Never invent facts.
+If the request asks for the cheapest option, put results with the lowest prices first and mention the price in the note."""

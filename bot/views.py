@@ -1,8 +1,9 @@
 """Vazifalarni foydalanuvchiga ko'rsatiladigan matnga aylantirish."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
-from html import escape
+from html import escape, unescape
 from urllib.parse import urlparse
 
 from bot.models import Task
@@ -131,6 +132,16 @@ def format_search_pages(
             lines.append(f'🔗 <a href="{escape(result.url)}">{escape(_domain(result.url), quote=False)}</a>')
         pages.append("\n".join(lines))
     return pages
+
+
+MEMO_LIMIT = 300
+_TAG = re.compile(r"<[^>]+>")
+
+
+def memo(text: str) -> str:
+    """Bot javobining AI xotirasi uchun qisqa, HTML'siz ko'rinishi."""
+    plain = " ".join(unescape(_TAG.sub("", text)).split())
+    return plain[:MEMO_LIMIT]
 
 
 def heard_text(text: str) -> str:
