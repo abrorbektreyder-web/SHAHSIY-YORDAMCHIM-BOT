@@ -26,7 +26,15 @@ SPEAK_BUTTON = "🔊 Ovozda eshitish"
 TASK_DONE_TOAST = "Bajarildi ✅"
 TASK_NOT_FOUND_TOAST = "Bu vazifa topilmadi"
 
-NOT_UNDERSTOOD = "Kechirasiz, buni tushunmadim. Boshqacharoq yozib yoki aytib ko'ra olasizmi?"
+HEARD = "🎤 <i>Eshitdim:</i> {text}"
+
+# Whisper'ga kontekst: o'zbekcha lotin imlosi va botda tez-tez uchraydigan so'zlar.
+STT_PROMPT = (
+    "Ertaga soat 15:00 da shifokorga borish. Indinga bankka borish. "
+    "Dushanba kuni uchrashuv. Vazifalarim qanday? Vaqtim yo'q, ovozda aytib ber."
+)
+
+NOT_UNDERSTOOD ="Kechirasiz, buni tushunmadim. Boshqacharoq yozib yoki aytib ko'ra olasizmi?"
 AI_ERROR = "Kechirasiz, hozir javob bera olmadim. Birozdan keyin qayta urinib ko'ring."
 VOICE_ERROR = "Ovozli xabarni tushuna olmadim. Iltimos, qaytadan yuboring yoki yozib yuboring."
 
@@ -35,6 +43,7 @@ COMMAND_START = "Yordamchini boshlash"
 # {now} — joriy vaqt; qolgan jingalak qavslar JSON uchun ikkilangan.
 SYSTEM_PROMPT = """You are a personal task assistant bot. The user writes in Uzbek (Latin or Cyrillic).
 Current date and time (Asia/Tashkent, UTC+5): {now}.
+The message may come from speech recognition, so it can contain misheard words and misspellings. Infer the intended Uzbek words from context and fix recognition errors in "title". Always write "title" in correct standard Uzbek Latin spelling, e.g. "Shfaqorga borish" → "Shifokorga borish", "banka borsh" → "Bankka borish", "uchirashuv" → "Uchrashuv".
 
 Classify the user's message and answer ONLY with one JSON object, no other text:
 {{"intent": "...", "title": "...", "due_at": "...", "reply": "..."}}

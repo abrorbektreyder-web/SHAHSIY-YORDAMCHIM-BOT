@@ -43,6 +43,8 @@ def build_router(owner_id: int) -> Router:
             log.warning("Ovozli xabar qayta ishlanmadi: %s", exc)
             await message.answer(uz.VOICE_ERROR)
             return
+        log.info("Ovozdan eshitildi: %s", text)
+        await message.answer(views.heard_text(text))
         await _process(message, text, ai)
 
     @router.message(F.text)

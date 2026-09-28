@@ -40,6 +40,10 @@ def format_task_list_for_speech(tasks: list[Task]) -> str:
     return " ".join(parts)
 
 
+def heard_text(text: str) -> str:
+    return uz.HEARD.format(text=escape(text))
+
+
 def task_added_text(title: str, due_at: datetime | None) -> str:
     if due_at is None:
         return uz.TASK_ADDED.format(title=title)

@@ -46,6 +46,10 @@ def test_speech_empty():
     assert views.format_task_list_for_speech([]) == uz.SPEECH_EMPTY
 
 
+def test_heard_text_is_escaped():
+    assert views.heard_text("Ertaga <bank>") == "🎤 <i>Eshitdim:</i> Ertaga &lt;bank&gt;"
+
+
 def test_task_added_text():
     assert views.task_added_text("Non", None) == "Vazifa qo'shildi: Non."
     assert (

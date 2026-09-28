@@ -208,6 +208,9 @@ async def test_groq_transcribe_uploads_ogg_to_whisper():
     body = seen["body"]
     assert b'name="model"\r\n\r\nwhisper-large-v3\r\n' in body
     assert b'name="language"\r\n\r\nuz\r\n' in body
+    # Whisper'ga o'zbekcha namuna: imlo va so'z tanlashni yaxshilaydi.
+    assert b'name="prompt"\r\n\r\n' in body
+    assert "shifokorga".encode() in body
     assert b'filename="voice.ogg"' in body
     assert b"OGGDATA" in body
 
@@ -226,6 +229,8 @@ async def test_groq_understand_uses_groq_and_default_qwen():
     assert seen["auth"] == "Bearer gsk-test"
     assert seen["body"]["model"] == "qwen/qwen3.8-27b"
     assert seen["body"]["response_format"] == {"type": "json_object"}
+    # Ovozdan kelgan matndagi eshitish xatolarini tuzatish ko'rsatmasi.
+    assert "speech recognition" in seen["body"]["messages"][0]["content"]
 
 
 async def test_llm_model_override_is_sent():

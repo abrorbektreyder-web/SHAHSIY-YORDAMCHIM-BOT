@@ -120,7 +120,12 @@ class AIClient:
             resp = await self._post(
                 "groq",
                 "/audio/transcriptions",
-                data={"model": GROQ_STT_MODEL, "language": "uz", "response_format": "json"},
+                data={
+                    "model": GROQ_STT_MODEL,
+                    "language": "uz",
+                    "prompt": uz.STT_PROMPT,
+                    "response_format": "json",
+                },
                 files={"file": (f"voice.{fmt}", audio)},
             )
         else:

@@ -283,5 +283,6 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 8++ | Groq qo'llab-quvvatlashi: bepul matn (Qwen 3.8) va ovoz→matn (Whisper), provayder `.env` orqali tanlanadi, OpenRouter kaliti ixtiyoriy | ☑ | 9 ta yangi test; umumiy: 66 o'tdi (Supabase bilan) |
 | 8+ | Kod tekshiruvi (code review) tuzatishlari: webhook kaliti formati, logga sir tushishi, qayta ishga tushishda xabar yo'qolishi, kunlik hisobot takrorlanishi, ovoz/tugma xatolari | ☑ | 6 ta yangi test; umumiy: 52 o'tdi, 5 ta (Supabase) kutmoqda |
 | 9 | Lokal sinov: haqiqiy bot bilan 1 ta matnli va 1 ta ovozli vazifa | ◐ qisman | Groq Qwen jonli sinovi: 4/4 o'zbekcha jumla to'g'ri tushunildi (0.4–1.1 s); bot `/start`ni qabul qilib, egasini tanidi. Javob yuborilmadi: lokal tarmoqdan `api.telegram.org` ga aloqa beqaror (ulanish 0.15 s – 15 s – timeout). Telegram bilan to'liq sinov Render'da (11-blok) o'tkaziladi |
-| 10 | GitHub'ga yuklash, Render'ga joylash, UptimeRobot | ☐ | — |
+| 10 | GitHub'ga yuklash, Render'ga joylash, UptimeRobot | ◐ qisman | GitHub (`SHAHSIY-YORDAMCHIM-BOT`) ✓; Render Web Service (Frankfurt, Free) ishga tushdi — `/start` va ovozli vazifa ishladi ✓; UptimeRobot — kutilmoqda |
+| 10+ | Ovozni tushunishni yaxshilash: "🎤 Eshitdim" ko'rsatish, Whisper'ga o'zbekcha namuna (`prompt`), AI'ga eshitish xatolarini tuzatish ko'rsatmasi | ☑ | 3 ta yangi test; jonli sinov: 6/6 xatoli jumla to'g'ri tuzatildi ("Shfaqorga" → "Shifokorga", "telfon qilsh" → "telefon qilish") |
 | 11 | Yakuniy sinov: Render'da ishlashi va 08:00 hisobot | ☐ | — |
