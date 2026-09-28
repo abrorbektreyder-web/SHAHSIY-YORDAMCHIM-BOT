@@ -1,6 +1,6 @@
 import base64
 import json
-from datetime import datetime
+from datetime import date, datetime
 
 import httpx
 import pytest
@@ -15,6 +15,7 @@ from bot.ai_client import (
     parse_intent,
     parse_ranking,
 )
+from bot.booking import BookingRequest
 from bot.scheduler import TASHKENT
 from bot.search import SearchResult
 
@@ -382,3 +383,34 @@ async def test_prompts_never_deny_search_and_handle_cheapest():
     assert "never say that you cannot search" in system
     assert "garbled" in system
     assert "cheapest" in rank
+
+
+def test_parse_book_intent():
+    raw = (
+        '{"intent":"book","category":"hotel","title":"CHINOR HOTEL","place":"Andijon",'
+        '"checkin":"2026-10-30","checkout":null,"guests":2,"rooms":1,"room_type":"delux"}'
+    )
+    assert parse_intent(raw) == Intent("book", booking=BookingRequest(
+        name="CHINOR HOTEL", city="Andijon", category="hotel",
+        checkin=date(2026, 10, 30), checkout=None, guests=2, rooms=1, room_type="delux",
+    ))
+
+
+def test_parse_book_defaults_and_restaurant():
+    raw = '{"intent":"book","category":"cafe","title":"Rayhon","guests":"ko\'p","rooms":0,"checkin":"ertaga","time":"19:00"}'
+    intent = parse_intent(raw)
+    assert intent.booking == BookingRequest(name="Rayhon", category="hotel", guests=1, rooms=1, time="19:00")
+    restaurant = parse_intent('{"intent":"book","category":"restaurant","title":"Rayhon","guests":4}')
+    assert restaurant.booking.category == "restaurant" and restaurant.booking.guests == 4
+    assert parse_intent('{"intent":"book","title":""}').kind == "unknown"
+
+
+async def test_system_prompt_describes_booking():
+    seen = {}
+
+    def handler(request):
+        seen["system"] = json.loads(request.content)["messages"][0]["content"]
+        return chat_response('{"intent":"list_tasks"}')
+
+    await groq_client_with(handler).understand("x", NOW)
+    assert '"book"' in seen["system"] and "never pays" in seen["system"]

@@ -24,6 +24,7 @@ from bot.keyboards import (
     DONE_PREFIX,
     SEARCH_MORE,
     SPEAK_LIST,
+    booking_keyboard,
     location_keyboard,
     more_keyboard,
     parse_done,
@@ -182,6 +183,12 @@ async def send_reply(message: Message, reply: Reply, ai: AIClient) -> None:
         await message.answer(reply.text, reply_markup=list_markup(reply.tasks))
     elif reply.kind in ("voice", "list_voice"):
         await _send_voice(message, reply.text, ai)
+    elif reply.kind == "booking":
+        await message.answer(
+            reply.text,
+            reply_markup=booking_keyboard(reply.url) if reply.url else None,
+            link_preview_options=NO_PREVIEW,
+        )
     elif reply.kind == "ask_place":
         _pending["search"] = reply.pending
         await message.answer(reply.text, reply_markup=location_keyboard())

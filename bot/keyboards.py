@@ -49,3 +49,7 @@ def more_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text=uz.SEARCH_MORE_BUTTON, callback_data=SEARCH_MORE)]]
     )
+
+
+def booking_keyboard(url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=uz.BOOKING_BUTTON, url=url)]])

@@ -7,6 +7,7 @@ from datetime import datetime
 
 from bot import views
 from bot.ai_client import AIError, Intent
+from bot.booking import BookingRequest, booking_url, extract_contacts, format_booking
 from bot.models import PLACE_CATEGORIES, Task
 from bot.search import SearchError
 from content import uz
@@ -22,6 +23,7 @@ class Reply:
     tasks: list[Task] = field(default_factory=list)  # "list": tugmalar shu tartibda
     more: str = ""  # "search": "Yana ko'rsat" sahifasi
     pending: Intent | None = None  # "ask_place": shahar kutayotgan qidiruv
+    url: str = ""  # "booking": Booking.com tugmasi havolasi
 
 
 def looks_like_place(text: str) -> bool:
@@ -68,6 +70,18 @@ async def run_search(intent: Intent, place: str | None, ai, searcher) -> Reply:
     return Reply("search", pages[0], more=pages[1] if len(pages) > 1 else "")
 
 
+async def run_booking(req: BookingRequest, searcher) -> Reply:
+    """Bron uchun tayyorlaydi: aloqa raqamlari va to'ldirilgan Booking.com havolasi. To'lov qilinmaydi."""
+    contacts: list[str] = []
+    if searcher is not None:
+        query = " ".join(p for p in (req.name, req.city, "telefon raqami") if p)
+        try:
+            contacts = extract_contacts(await searcher.search(query, "general"))
+        except SearchError as exc:
+            log.warning("Aloqa raqamlarini qidirishda xato: %s", exc)
+    return Reply("booking", format_booking(req, contacts), url=booking_url(req) or "")
+
+
 async def handle_text(text: str, ai, store, now: datetime, searcher=None, history=()) -> Reply:
     intent = await ai.understand(text, now, history)
     if intent.kind == "add_task":
@@ -84,6 +98,8 @@ async def handle_text(text: str, ai, store, now: datetime, searcher=None, histor
         if intent.category in PLACE_CATEGORIES and not intent.place:
             return Reply("ask_place", uz.ASK_PLACE, pending=intent)
         return await run_search(intent, intent.place, ai, searcher)
+    if intent.kind == "book":
+        return await run_booking(intent.booking, searcher)
     if intent.kind == "chat":
         return Reply("voice", intent.reply)
     return Reply("text", uz.NOT_UNDERSTOOD)

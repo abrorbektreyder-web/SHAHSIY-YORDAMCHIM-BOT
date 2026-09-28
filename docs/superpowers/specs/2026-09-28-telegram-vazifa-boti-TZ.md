@@ -304,3 +304,16 @@ Batafsil reja: `docs/superpowers/specs/2026-09-28-bosqich2-qidiruv-design.md`. Q
 | 2.6 | Telegram: 📍 tugma, joylashuv, "Yana ko'rsat", ishga tushirish | ☑ | 2 ta tugma testi; umumiy 104 test o'tdi; internetsiz Telegram sinovi: 7/7 holat (shahar so'rash, joylashuv → qidiruv, "Yana ko'rsat", eskirgan tugma, matn bilan shahar, kutilmagan joylashuv, begona foydalanuvchi) |
 | 2.7 | Jonli sinov (har yo'nalishdan 1 tadan) va Render'ga chiqarish | ◐ qisman | Jonli: 5/5 yo'nalish ishladi (bilet, mehmonxona, kafe → shahar so'raldi, YouTube, dollar kursi; 2–6 s). Topilgan muammo: Groq bepul limiti — daqiqasiga 1000 javob tokeni, saralash ~408 token → izoh qisqartirildi, `max_tokens=400`, 429 da ≤10 s kutib 1 marta qayta urinish (3 ta yangi test, umumiy 107). Render'ga chiqarish — kutilmoqda |
 | 2.8 | Suhbat xotirasi va "eng arzon": oxirgi 8 xabar kontekst sifatida AI'ga beriladi; AI "qidira olmayman" demaydi; tushunarsiz ovozdan soxta vazifa tuzilmaydi | ☑ | Topilgan xatolar: (1) bot oldingi so'rovni eslamasdi → "o'zing qidir va eng arzonini top" chat deb tushunilib "internetdan qidira olmayman" deb javob berdi; (2) suhbatni assistant navbati sifatida berish Groq `json_validate_failed` xatosini berdi → kontekst user xabariga qo'shildi. 5 ta yangi test (umumiy 112); jonli: keyingi so'rov qidiruvga aylandi va natijalar arzonidan boshlab tartiblandi (233$ → 237$ → 249.86$); noto'g'ri eshitilgan ovoz to'g'ri qidiruvga aylandi |
+
+---
+
+## 14. 4-BOSQICH: BRON QILISH — BAJARILISH HOLATI
+
+Egasining qarori (2026-09-29): Booking.com'da to'liq avtomatik bron qilinmaydi (ommaviy API yo'q, robot orqali boshqarish Booking qoidalariga zid, CAPTCHA, ko'p mehmonxonalar kafolat uchun karta so'raydi, bepul serverda og'ir brauzer ishlamaydi). O'rniga bot bronni **tayyorlaydi**, oxirgi tasdiqlashni egasi o'zi bosadi; to'lov hech qachon qilinmaydi.
+
+| Blok | Nima qilinadi | Holat | Tekshiruv natijasi |
+|---|---|---|---|
+| 4.1 | "Bron qil" niyati: mehmonxona (nomi, shahar, sanalar, kishi, xona, xona turi) va restoran (sana, soat, kishi); shahar/nom oldingi suhbatdan olinadi | ☑ | 3 ta test (AI) + 2 ta test (mantiq) |
+| 4.2 | Sana, kishi va xona to'ldirilgan Booking.com havolasi (tugma) | ☑ | test: `ss`, `checkin`, `checkout`, `group_adults`, `no_rooms` |
+| 4.3 | Telefon / Telegram raqamlarini qidirib topish (manba sayti bilan) va aytiladigan tayyor gap | ☑ | 7 ta test; jonli: CHINOR HOTEL (Andijon) — 2 raqam (instagram.com, goldenpages.uz), Rayhon restorani — 3 raqam |
+| 4.4 | Pulsiz, bekor qilinadigan bandlovni botning o'zi amalga oshirishi | ☐ | Qurilmaydi (yuqoridagi sabablar); kelajakda rasmiy bron API'si bo'lgan xizmat topilsa qayta ko'riladi |

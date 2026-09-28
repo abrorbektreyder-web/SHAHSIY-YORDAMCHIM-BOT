@@ -6,11 +6,12 @@ import base64
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 import httpx
 
-from bot.models import REPORT_FILTERS, SEARCH_CATEGORIES
+from bot.booking import BookingRequest
+from bot.models import PLACE_CATEGORIES, REPORT_FILTERS, SEARCH_CATEGORIES
 from bot.scheduler import TASHKENT
 from bot.search import SearchResult
 from content import uz
@@ -29,7 +30,7 @@ TTS_VOICE = "Kore"
 MAX_RETRY_WAIT = 10  # soniya
 MAX_OUTPUT_TOKENS = 400
 
-INTENTS = ("add_task", "list_tasks", "speak_report", "search", "chat", "unknown")
+INTENTS = ("add_task", "list_tasks", "speak_report", "search", "book", "chat", "unknown")
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$")
 # Fikrlovchi modellar (masalan Groq'dagi Qwen) javob oldiga <think> blok qo'yishi mumkin.
 _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
@@ -49,6 +50,7 @@ class Intent:
     category: str = "general"
     query: str = ""
     place: str | None = None
+    booking: BookingRequest | None = None
 
 
 def _load_json(raw: str) -> object:
@@ -98,7 +100,36 @@ def parse_intent(raw: str) -> Intent:
             query=query,
             place=_text(data.get("place")) or None,
         )
+    if kind == "book":
+        name = _text(data.get("title"))
+        if not name:
+            return Intent("unknown")
+        category = data.get("category")
+        return Intent("book", booking=BookingRequest(
+            name=name,
+            city=_text(data.get("place")),
+            category=category if category in PLACE_CATEGORIES else "hotel",
+            checkin=_parse_date(data.get("checkin")),
+            checkout=_parse_date(data.get("checkout")),
+            guests=_positive_int(data.get("guests")),
+            rooms=_positive_int(data.get("rooms")),
+            room_type=_text(data.get("room_type")),
+            time=_text(data.get("time")),
+        ))
     return Intent(kind)
+
+
+def _parse_date(raw: object) -> date | None:
+    try:
+        return date.fromisoformat(raw) if isinstance(raw, str) else None
+    except ValueError:
+        return None
+
+
+def _positive_int(raw: object) -> int:
+    if isinstance(raw, str) and raw.strip().isdigit():
+        raw = int(raw)
+    return raw if isinstance(raw, int) and not isinstance(raw, bool) and raw >= 1 else 1
 
 
 def parse_ranking(raw: str, count: int) -> list[tuple[int, str]]:

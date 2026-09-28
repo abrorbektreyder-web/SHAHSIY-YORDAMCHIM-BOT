@@ -4,6 +4,7 @@ from bot.ai_client import AIError, Intent
 from bot.logic import Reply, daily_report, handle_text, looks_like_place, run_search, task_report
 from bot.models import Task
 from bot.scheduler import TASHKENT
+from bot.booking import BookingRequest
 from bot.search import SearchError, SearchResult
 from content import uz
 
@@ -191,3 +192,25 @@ async def test_history_is_passed_to_ai():
     history = [{"role": "user", "content": "Toshkent Madina chipta"}]
     await handle_text("eng arzonini top", ai, FakeStore(), NOW, history=history)
     assert ai.history == history
+
+
+BOOK = Intent("book", booking=BookingRequest(
+    name="CHINOR HOTEL", city="Andijon", category="hotel",
+    checkin=datetime(2026, 10, 30).date(), guests=2, rooms=1, room_type="delux",
+))
+
+
+async def test_book_hotel_finds_contacts_and_link():
+    searcher = FakeSearcher(results=[SearchResult("Chinor", "https://chinor.uz", "Tel: +998 74 223 45 67")])
+    reply = await handle_text("Chinor hotel bron qil", FakeAI(BOOK), FakeStore(), NOW, searcher)
+    assert reply.kind == "booking"
+    assert reply.url.startswith("https://www.booking.com/searchresults.html?")
+    assert "📞 +998 74 223 45 67 — chinor.uz" in reply.text
+    assert searcher.calls == [("CHINOR HOTEL Andijon telefon raqami", "general")]
+
+
+async def test_book_without_searcher_or_on_error_still_prepares_link():
+    reply = await handle_text("bron qil", FakeAI(BOOK), FakeStore(), NOW)
+    assert reply.kind == "booking" and reply.url and "topilmadi" in reply.text
+    reply = await handle_text("bron qil", FakeAI(BOOK), FakeStore(), NOW, FakeSearcher(error=True))
+    assert reply.kind == "booking" and "topilmadi" in reply.text

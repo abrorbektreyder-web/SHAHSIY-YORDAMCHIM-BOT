@@ -1,4 +1,4 @@
-from bot.keyboards import location_keyboard, more_keyboard, parse_done, task_list_keyboard
+from bot.keyboards import booking_keyboard, location_keyboard, more_keyboard, parse_done, task_list_keyboard
 from bot.models import Task
 
 
@@ -30,3 +30,9 @@ def test_location_keyboard_requests_location_once():
 def test_more_keyboard():
     button = more_keyboard().inline_keyboard[0][0]
     assert button.callback_data == "search:more" and button.text == "➡️ Yana ko'rsat"
+
+
+def test_booking_keyboard_opens_url():
+    button = booking_keyboard("https://www.booking.com/searchresults.html?ss=x").inline_keyboard[0][0]
+    assert button.url == "https://www.booking.com/searchresults.html?ss=x"
+    assert button.text == "🔗 Booking.com'da ochish"
