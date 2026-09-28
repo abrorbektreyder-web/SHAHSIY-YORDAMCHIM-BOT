@@ -236,6 +236,8 @@ async def test_groq_understand_uses_groq_and_default_qwen():
     assert seen["body"]["response_format"] == {"type": "json_object"}
     # Ovozdan kelgan matndagi eshitish xatolarini tuzatish ko'rsatmasi.
     assert "speech recognition" in seen["body"]["messages"][0]["content"]
+    # Internet kerak bo'lgan so'rovlarda ma'lumot o'ylab topmaslik ko'rsatmasi.
+    assert "Never invent" in seen["body"]["messages"][0]["content"]
 
 
 async def test_llm_model_override_is_sent():
