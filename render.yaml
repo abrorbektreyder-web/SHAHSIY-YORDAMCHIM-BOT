@@ -26,7 +26,5 @@ services:
         sync: false
       - key: OWNER_ID
         sync: false
-      - key: OPENROUTER_API_KEY
-        sync: false
       - key: DATABASE_URL
         sync: false

@@ -224,7 +224,7 @@ Bular hech qachon kodga yozilmaydi — faqat Render servisining **Environment** 
 
 ### 8.4 Render'ga joylash (egasi bajaradi, ishlab chiquvchi qadam-baqadam yo'l ko'rsatadi)
 7. Render → **New → Blueprint** → `vazifa-bot` repo tanlanadi (`render.yaml` avtomatik o'qiladi).
-8. Environment bo'limiga maxfiy qiymatlar kiritiladi: `BOT_TOKEN`, `OPENROUTER_API_KEY`, `OWNER_ID`, `DATABASE_URL`.
+8. Environment bo'limiga maxfiy qiymatlar kiritiladi: `BOT_TOKEN`, `GROQ_API_KEY`, `OWNER_ID`, `DATABASE_URL`. (`OPENROUTER_API_KEY` — ixtiyoriy, ovozli javob kerak bo'lganda keyin qo'lda qo'shiladi.)
 9. Deploy logida "Webhook o'rnatildi" chiqqanini va `https://<servis>.onrender.com/health` → `ok` qaytarishini tekshirish.
 10. UptimeRobot'da `https://<servis>.onrender.com/health` uchun 5 daqiqalik monitor qo'shiladi.
 
@@ -282,6 +282,6 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 8 | Ishga tushirish va Render sozlamasi (`main.py`, `render.yaml`) | ☑ | 3/3 test o'tdi; umumiy: 47 o'tdi, 5 ta (Supabase) kutmoqda |
 | 8++ | Groq qo'llab-quvvatlashi: bepul matn (Qwen 3.8) va ovoz→matn (Whisper), provayder `.env` orqali tanlanadi, OpenRouter kaliti ixtiyoriy | ☑ | 9 ta yangi test; umumiy: 66 o'tdi (Supabase bilan) |
 | 8+ | Kod tekshiruvi (code review) tuzatishlari: webhook kaliti formati, logga sir tushishi, qayta ishga tushishda xabar yo'qolishi, kunlik hisobot takrorlanishi, ovoz/tugma xatolari | ☑ | 6 ta yangi test; umumiy: 52 o'tdi, 5 ta (Supabase) kutmoqda |
-| 9 | Lokal sinov: haqiqiy bot bilan 1 ta matnli va 1 ta ovozli vazifa | ☐ | — |
+| 9 | Lokal sinov: haqiqiy bot bilan 1 ta matnli va 1 ta ovozli vazifa | ◐ qisman | Groq Qwen jonli sinovi: 4/4 o'zbekcha jumla to'g'ri tushunildi (0.4–1.1 s); bot `/start`ni qabul qilib, egasini tanidi. Javob yuborilmadi: lokal tarmoqdan `api.telegram.org` ga aloqa beqaror (ulanish 0.15 s – 15 s – timeout). Telegram bilan to'liq sinov Render'da (11-blok) o'tkaziladi |
 | 10 | GitHub'ga yuklash, Render'ga joylash, UptimeRobot | ☐ | — |
 | 11 | Yakuniy sinov: Render'da ishlashi va 08:00 hisobot | ☐ | — |
