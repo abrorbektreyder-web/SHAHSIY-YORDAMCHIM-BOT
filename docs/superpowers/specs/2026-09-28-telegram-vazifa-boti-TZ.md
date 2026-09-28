@@ -301,5 +301,5 @@ Batafsil reja: `docs/superpowers/specs/2026-09-28-bosqich2-qidiruv-design.md`. Q
 | 2.3 | AI: qidiruv niyatini aniqlash va natijalarni saralash | ☑ | 4 ta yangi test; jonli: 7/7 so'rov to'g'ri (bilet, mehmonxona shaharsiz, restoran shahar bilan, YouTube, umumiy, band qilish → halol rad, oddiy vazifa) |
 | 2.4 | Natijalar ko'rinishi (3 ta + "Yana ko'rsat") | ☑ | 2 ta yangi test (raqamlash, havola, HTML xavfsizligi, 2-sahifa) |
 | 2.5 | Bot mantiqi: shahar so'rash, qidiruv, xatolar | ☑ | 9 ta yangi test (qidiruv o'chiq, shahar so'rash, shahar bilan qidiruv, saralash va 2-sahifa, saralash xatosida zaxira tartib, qidiruv xatosi/bo'sh natija); umumiy 102 test o'tdi |
-| 2.6 | Telegram: 📍 tugma, joylashuv, "Yana ko'rsat", ishga tushirish | ☐ | — |
+| 2.6 | Telegram: 📍 tugma, joylashuv, "Yana ko'rsat", ishga tushirish | ☑ | 2 ta tugma testi; umumiy 104 test o'tdi; internetsiz Telegram sinovi: 7/7 holat (shahar so'rash, joylashuv → qidiruv, "Yana ko'rsat", eskirgan tugma, matn bilan shahar, kutilmagan joylashuv, begona foydalanuvchi) |
 | 2.7 | Jonli sinov (har yo'nalishdan 1 tadan) va Render'ga chiqarish | ☐ | — |

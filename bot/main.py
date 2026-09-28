@@ -23,9 +23,11 @@ from aiohttp import web
 from bot import db
 from bot.ai_client import AIClient
 from bot.config import Config, load_config
+from bot.geo import Geocoder
 from bot.handlers import build_router, list_markup
 from bot.logic import daily_report
 from bot.scheduler import daily_report_loop, now_tashkent
+from bot.search import TavilyClient
 from content import uz
 
 log = logging.getLogger(__name__)
@@ -52,10 +54,14 @@ def make_daily_sender(bot, owner_id: int) -> Callable[[], Awaitable[None]]:
     return send
 
 
-def build_bot(config: Config, ai: AIClient) -> tuple[Bot, Dispatcher]:
+def build_bot(
+    config: Config, ai: AIClient, searcher: TavilyClient | None, geo: Geocoder
+) -> tuple[Bot, Dispatcher]:
     bot = Bot(config.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp["ai"] = ai
+    dp["searcher"] = searcher
+    dp["geo"] = geo
     dp.include_router(build_router(config.owner_id))
     return bot, dp
 
@@ -121,7 +127,10 @@ async def run() -> None:
         "AI: matn=%s, ovoz→matn=%s, ovozli javob=%s",
         config.llm_provider, config.stt_provider, "yoqilgan" if ai.can_speak else "o'chirilgan",
     )
-    bot, dp = build_bot(config, ai)
+    searcher = TavilyClient(config.tavily_api_key) if config.tavily_api_key else None
+    geo = Geocoder()
+    log.info("Internetdan qidirish: %s", "yoqilgan" if searcher else "o'chirilgan")
+    bot, dp = build_bot(config, ai, searcher, geo)
     await _setup_commands(bot, config)
     reporter = asyncio.create_task(daily_report_loop(make_daily_sender(bot, config.owner_id)))
     log.info("Bot ishga tushdi (%s)", config.mode)
@@ -133,6 +142,9 @@ async def run() -> None:
     finally:
         reporter.cancel()
         await ai.close()
+        if searcher:
+            await searcher.close()
+        await geo.close()
         await db.close_pool()
         await bot.session.close()
 

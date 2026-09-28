@@ -1,4 +1,4 @@
-from bot.keyboards import parse_done, task_list_keyboard
+from bot.keyboards import location_keyboard, more_keyboard, parse_done, task_list_keyboard
 from bot.models import Task
 
 
@@ -18,3 +18,15 @@ def test_parse_done():
     assert parse_done("done:12") == 12
     assert parse_done("done:x") is None
     assert parse_done("speak:list") is None
+
+
+def test_location_keyboard_requests_location_once():
+    kb = location_keyboard()
+    assert kb.keyboard[0][0].request_location is True
+    assert kb.keyboard[0][0].text == "📍 Joylashuvni yuborish"
+    assert kb.one_time_keyboard is True and kb.resize_keyboard is True
+
+
+def test_more_keyboard():
+    button = more_keyboard().inline_keyboard[0][0]
+    assert button.callback_data == "search:more" and button.text == "➡️ Yana ko'rsat"

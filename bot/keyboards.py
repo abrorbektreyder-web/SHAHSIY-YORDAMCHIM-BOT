@@ -1,13 +1,14 @@
 """Inline tugmalar."""
 from __future__ import annotations
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 
 from bot.models import Task
 from content import uz
 
 DONE_PREFIX = "done:"
 SPEAK_LIST = "speak:list"
+SEARCH_MORE = "search:more"
 TITLE_LIMIT = 30
 
 
@@ -34,3 +35,17 @@ def parse_done(data: str) -> int | None:
         return None
     raw = data[len(DONE_PREFIX):]
     return int(raw) if raw.isdigit() else None
+
+
+def location_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=uz.SEND_LOCATION_BUTTON, request_location=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def more_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=uz.SEARCH_MORE_BUTTON, callback_data=SEARCH_MORE)]]
+    )

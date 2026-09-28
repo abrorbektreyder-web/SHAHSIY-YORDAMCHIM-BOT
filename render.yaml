@@ -20,6 +20,8 @@ services:
         value: groq
       - key: GROQ_API_KEY
         sync: false
+      - key: TAVILY_API_KEY
+        sync: false
       - key: WEBHOOK_SECRET
         generateValue: true
       - key: BOT_TOKEN

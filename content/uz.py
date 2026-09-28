@@ -5,7 +5,8 @@ START = (
     "Menga matn yoki ovozli xabar yuboring:\n"
     "• vazifa: <i>«Ertaga soat 15:00 da shifokorga borish»</i>\n"
     "• ro'yxat: <i>«Vazifalarim qanday?»</i>\n"
-    "• ovozli hisobot: <i>«Vaqtim yo'q, ovozda ayt»</i>\n\n"
+    "• ovozli hisobot: <i>«Vaqtim yo'q, ovozda ayt»</i>\n"
+    "• qidiruv: <i>«Toshkent–Istanbul 15-oktabr bilet top»</i>, <i>«Yosin surasini YouTube'dan top»</i>\n\n"
     "Har kuni soat 08:00 da sizga kunlik hisobot yuboraman."
 )
 
@@ -44,6 +45,12 @@ SEARCH_DISABLED = "Internetdan qidirish hali yoqilmagan."
 ASK_PLACE = "Qaysi shaharda qidiray? Shahar nomini yozing yoki pastdagi 📍 tugmani bosing."
 SEARCH_ERROR = "Qidiruvda xato bo'ldi. Birozdan keyin urinib ko'ring."
 SEARCH_EMPTY = "Hech narsa topilmadi. Boshqacharoq so'rab ko'ring."
+SEND_LOCATION_BUTTON = "📍 Joylashuvni yuborish"
+PLACE_DETECTED = "📍 {city} bo'yicha qidiryapman..."
+PLACE_NOT_FOUND = "Joylashuvdan shaharni aniqlay olmadim. Iltimos, shahar nomini yozing."
+LOCATION_UNUSED = "Joylashuv qabul qilindi, lekin hozir kutilayotgan qidiruv yo'q."
+SEARCH_MORE_BUTTON = "➡️ Yana ko'rsat"
+SEARCH_EXPIRED = "Bu natijalar eskirgan. Qidiruvni qaytadan so'rang."
 
 NOT_UNDERSTOOD = "Kechirasiz, buni tushunmadim. Boshqacharoq yozib yoki aytib ko'ra olasizmi?"
 AI_ERROR = "Kechirasiz, hozir javob bera olmadim. Birozdan keyin qayta urinib ko'ring."
