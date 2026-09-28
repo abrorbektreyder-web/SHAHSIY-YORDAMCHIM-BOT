@@ -271,7 +271,7 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 4 | Supabase'da saqlash (`db.py`) | ◐ qisman | Kod yozildi; 5 ta test Supabase manzili yo'qligi uchun o'tkazib yuborildi — 9-blokda tekshiriladi |
 | 5 | OpenRouter AI: ovoz→matn, tushunish, matn→ovoz (`ai_client.py`) | ☑ | 16/16 test o'tdi (sun'iy javoblar bilan; haqiqiy OpenRouter — 9-blokda) |
 | 6 | Bot mantiqi: vazifa / ro'yxat / suhbat (`logic.py`) | ☑ | 6/6 test o'tdi |
-| 7 | Telegram handlerlar va tugmalar (`handlers.py`, `keyboards.py`) | ☐ | — |
+| 7 | Telegram handlerlar va tugmalar (`handlers.py`, `keyboards.py`) | ☑ | 3/3 tugma testi o'tdi; handlerlar xatosiz yuklandi (haqiqiy Telegram — 9-blokda) |
 | 8 | Ishga tushirish va Render sozlamasi (`main.py`, `render.yaml`) | ☐ | — |
 | 9 | Lokal sinov: haqiqiy bot bilan 1 ta matnli va 1 ta ovozli vazifa | ☐ | — |
 | 10 | GitHub'ga yuklash, Render'ga joylash, UptimeRobot | ☐ | — |
