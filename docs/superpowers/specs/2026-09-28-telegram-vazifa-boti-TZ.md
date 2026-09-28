@@ -268,7 +268,7 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 1 | Loyiha asosi va konfiguratsiya (`config.py`, kutubxonalar) | ☑ | 6/6 test o'tdi |
 | 2 | Toshkent vaqti va kunlik 08:00 hisobot sikli (`scheduler.py`) | ☑ | 5/5 test o'tdi |
 | 3 | O'zbekcha matnlar va ro'yxat ko'rinishi (`uz.py`, `views.py`) | ☑ | 8/8 test o'tdi |
-| 4 | Supabase'da saqlash (`db.py`) | ☐ | — |
+| 4 | Supabase'da saqlash (`db.py`) | ◐ qisman | Kod yozildi; 5 ta test Supabase manzili yo'qligi uchun o'tkazib yuborildi — 9-blokda tekshiriladi |
 | 5 | OpenRouter AI: ovoz→matn, tushunish, matn→ovoz (`ai_client.py`) | ☐ | — |
 | 6 | Bot mantiqi: vazifa / ro'yxat / suhbat (`logic.py`) | ☐ | — |
 | 7 | Telegram handlerlar va tugmalar (`handlers.py`, `keyboards.py`) | ☐ | — |
