@@ -12,7 +12,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardMarkup
 from bot import db, views
 from bot.ai_client import AIClient, AIError
 from bot.keyboards import DONE_PREFIX, SPEAK_LIST, parse_done, task_list_keyboard
-from bot.logic import Reply, handle_text
+from bot.logic import Reply, handle_text, task_report
 from bot.models import Task
 from bot.scheduler import now_tashkent
 from content import uz
@@ -61,8 +61,8 @@ def build_router(owner_id: int) -> Router:
             answered = True
             if not isinstance(callback.message, Message):
                 return
-            tasks = await db.list_open_tasks()
-            await callback.message.edit_text(views.format_task_list(tasks), reply_markup=list_markup(tasks))
+            report = await task_report(db, now_tashkent())
+            await callback.message.edit_text(report.text, reply_markup=list_markup(report.tasks))
         except TelegramBadRequest as exc:
             # Ikki marta bosilsa matn o'zgarmaydi — Telegram "message is not modified" qaytaradi.
             log.info("Ro'yxat yangilanmadi: %s", exc)
@@ -78,7 +78,7 @@ def build_router(owner_id: int) -> Router:
         if not isinstance(callback.message, Message):
             return
         try:
-            tasks = await db.list_open_tasks()
+            tasks = views.order_open(await db.list_open_tasks(), now_tashkent())
         except Exception:
             log.exception("Ro'yxatni o'qishda xato")
             await callback.message.answer(uz.AI_ERROR)
@@ -104,7 +104,7 @@ async def _process(message: Message, text: str, ai: AIClient) -> None:
 
 async def send_reply(message: Message, reply: Reply, ai: AIClient) -> None:
     if reply.kind == "list":
-        await message.answer(views.format_task_list(reply.tasks), reply_markup=list_markup(reply.tasks))
+        await message.answer(reply.text, reply_markup=list_markup(reply.tasks))
     elif reply.kind in ("voice", "list_voice"):
         await _send_voice(message, reply.text, ai)
     else:
@@ -113,11 +113,11 @@ async def send_reply(message: Message, reply: Reply, ai: AIClient) -> None:
 
 async def _send_voice(message: Message, text: str, ai: AIClient) -> None:
     if not ai.can_speak:
-        await message.answer(escape(text))
+        await message.answer(escape(text, quote=False))
         return
     try:
         audio = await ai.speak(text)
         await message.answer_voice(BufferedInputFile(audio, filename="javob.mp3"))
     except Exception as exc:  # noqa: BLE001 — ovoz chiqmasa ham javob yetib borsin
         log.warning("Ovozli javob yuborilmadi, matnga o'tildi: %s", exc)
-        await message.answer(escape(text))
+        await message.answer(escape(text, quote=False))

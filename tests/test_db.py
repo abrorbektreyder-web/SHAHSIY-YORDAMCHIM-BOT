@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import asyncpg
 import pytest
@@ -50,6 +50,19 @@ async def test_order_dated_first_then_undated(fresh_db):
     late = await db.add_task("Kech", datetime(2026, 10, 1, 9, 0, tzinfo=TASHKENT))
     early = await db.add_task("Erta", datetime(2026, 9, 30, 9, 0, tzinfo=TASHKENT))
     assert [t.id for t in await db.list_open_tasks()] == [early, late, undated]
+
+
+async def test_list_done_tasks_since_newest_first(fresh_db):
+    older = await db.add_task("Birinchi bajarilgan", None)
+    newer = await db.add_task("Ikkinchi bajarilgan", None)
+    await db.add_task("Hali ochiq", None)
+    await db.mark_done(older)
+    await db.mark_done(newer)
+
+    done = await db.list_done_tasks(datetime.now(TASHKENT) - timedelta(days=7))
+    assert [t.id for t in done] == [newer, older]
+    assert all(t.done_at is not None for t in done)
+    assert await db.list_done_tasks(datetime.now(TASHKENT) + timedelta(days=1)) == []
 
 
 async def test_init_db_is_idempotent(fresh_db):

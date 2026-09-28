@@ -9,6 +9,7 @@ from datetime import datetime
 
 import httpx
 
+from bot.models import REPORT_FILTERS
 from bot.scheduler import TASHKENT
 from content import uz
 
@@ -40,6 +41,7 @@ class Intent:
     title: str | None = None
     due_at: datetime | None = None
     reply: str = ""
+    filter: str = "all"
 
 
 def _parse_due(raw: object) -> datetime | None:
@@ -70,6 +72,9 @@ def parse_intent(raw: str) -> Intent:
     if kind == "chat":
         reply = _text(data.get("reply"))
         return Intent("chat", reply=reply) if reply else Intent("unknown")
+    if kind == "list_tasks":
+        filter_ = data.get("filter")
+        return Intent("list_tasks", filter=filter_ if filter_ in REPORT_FILTERS else "all")
     return Intent(kind)
 
 

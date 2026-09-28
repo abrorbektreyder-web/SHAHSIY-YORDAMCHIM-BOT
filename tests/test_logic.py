@@ -1,13 +1,16 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from bot.ai_client import Intent
-from bot.logic import Reply, handle_text
+from bot.logic import Reply, daily_report, handle_text, task_report
 from bot.models import Task
 from bot.scheduler import TASHKENT
 from content import uz
 
 NOW = datetime(2026, 9, 28, 19, 0, tzinfo=TASHKENT)
 DUE = datetime(2026, 9, 29, 15, 0, tzinfo=TASHKENT)
+OVERDUE = Task(1, "Onamga telefon", datetime(2026, 9, 27, 9, 0, tzinfo=TASHKENT))
+UPCOMING = Task(2, "Shifokor", DUE)
+DONE = Task(3, "Uchrashuv", done_at=datetime(2026, 9, 28, 10, 0, tzinfo=TASHKENT))
 
 
 class FakeAI:
@@ -21,9 +24,11 @@ class FakeAI:
 
 
 class FakeStore:
-    def __init__(self, tasks=None):
+    def __init__(self, tasks=None, done=None):
         self.tasks = tasks or []
+        self.done = done or []
         self.added = []
+        self.done_since = None
 
     async def add_task(self, title, due_at):
         self.added.append((title, due_at))
@@ -31,6 +36,10 @@ class FakeStore:
 
     async def list_open_tasks(self):
         return self.tasks
+
+    async def list_done_tasks(self, since):
+        self.done_since = since
+        return self.done
 
 
 async def test_add_task_saves_and_replies_by_voice():
@@ -40,16 +49,39 @@ async def test_add_task_saves_and_replies_by_voice():
     assert reply == Reply("voice", "Vazifa qo'shildi: Shifokor. Muddati: 29.09.2026 15:00.")
 
 
-async def test_list_returns_tasks():
-    tasks = [Task(1, "Non")]
-    reply = await handle_text("ro'yxat", FakeAI(Intent("list_tasks")), FakeStore(tasks), NOW)
-    assert reply == Reply("list", tasks=tasks)
+async def test_list_returns_full_report_with_done_last_7_days():
+    store = FakeStore([UPCOMING, OVERDUE], [DONE])
+    reply = await handle_text("vazifalarim", FakeAI(Intent("list_tasks")), store, NOW)
+    assert reply.kind == "list"
+    assert reply.tasks == [OVERDUE, UPCOMING]
+    assert "Bajarilgan" in reply.text and "Muddati o'tgan" in reply.text
+    assert store.done_since == NOW - timedelta(days=7)
 
 
-async def test_speak_report_returns_speech_text():
-    tasks = [Task(1, "Non")]
-    reply = await handle_text("ovozda ayt", FakeAI(Intent("speak_report")), FakeStore(tasks), NOW)
-    assert reply == Reply("list_voice", "Sizda 1 ta ochiq vazifa bor. 1. Non.", tasks)
+async def test_list_filter_is_applied():
+    store = FakeStore([UPCOMING, OVERDUE], [DONE])
+    reply = await handle_text("bajarilganlar", FakeAI(Intent("list_tasks", filter="done")), store, NOW)
+    assert reply.tasks == []
+    assert "Uchrashuv" in reply.text and "Shifokor" not in reply.text
+
+
+async def test_task_report_skips_done_query_when_not_needed():
+    store = FakeStore([UPCOMING])
+    await task_report(store, NOW, "today")
+    assert store.done_since is None
+
+
+async def test_daily_report():
+    reply = await daily_report(FakeStore([UPCOMING, OVERDUE], [DONE]), NOW)
+    assert reply.kind == "list"
+    assert reply.text.startswith("☀️")
+    assert reply.tasks == [OVERDUE, UPCOMING]
+
+
+async def test_speak_report_uses_report_order():
+    reply = await handle_text("ovozda ayt", FakeAI(Intent("speak_report")), FakeStore([UPCOMING, OVERDUE]), NOW)
+    assert reply.kind == "list_voice"
+    assert reply.text.startswith("Sizda 2 ta ochiq vazifa bor. 1. Onamga telefon")
 
 
 async def test_chat_reply_goes_to_voice():

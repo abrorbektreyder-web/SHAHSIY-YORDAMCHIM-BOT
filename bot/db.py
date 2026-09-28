@@ -56,6 +56,15 @@ async def list_open_tasks() -> list[Task]:
     return [Task(row["id"], row["title"], row["due_at"]) for row in rows]
 
 
+async def list_done_tasks(since: datetime) -> list[Task]:
+    rows = await _pool_or_fail().fetch(
+        f"SELECT id, title, due_at, done_at FROM {_schema}.tasks "
+        f"WHERE done AND done_at >= $1 ORDER BY done_at DESC, id DESC",
+        since,
+    )
+    return [Task(row["id"], row["title"], row["due_at"], row["done_at"]) for row in rows]
+
+
 async def mark_done(task_id: int) -> bool:
     result = await _pool_or_fail().execute(
         f"UPDATE {_schema}.tasks SET done = TRUE, done_at = now() WHERE id = $1 AND NOT done",

@@ -20,11 +20,12 @@ from aiogram.types import BotCommand, BotCommandScopeChat
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
-from bot import db, views
+from bot import db
 from bot.ai_client import AIClient
 from bot.config import Config, load_config
 from bot.handlers import build_router, list_markup
-from bot.scheduler import daily_report_loop
+from bot.logic import daily_report
+from bot.scheduler import daily_report_loop, now_tashkent
 from content import uz
 
 log = logging.getLogger(__name__)
@@ -45,8 +46,8 @@ async def health(_request) -> web.Response:
 
 def make_daily_sender(bot, owner_id: int) -> Callable[[], Awaitable[None]]:
     async def send() -> None:
-        tasks = await db.list_open_tasks()
-        await bot.send_message(owner_id, views.format_daily_report(tasks), reply_markup=list_markup(tasks))
+        report = await daily_report(db, now_tashkent())
+        await bot.send_message(owner_id, report.text, reply_markup=list_markup(report.tasks))
 
     return send
 

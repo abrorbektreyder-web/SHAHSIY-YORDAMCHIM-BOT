@@ -5,32 +5,89 @@ from bot.models import Task
 from bot.scheduler import TASHKENT
 from content import uz
 
+NOW = datetime(2026, 9, 28, 19, 0, tzinfo=TASHKENT)
 DUE = datetime(2026, 9, 29, 15, 0, tzinfo=TASHKENT)
 
+OVERDUE = Task(1, "Onamga telefon", datetime(2026, 9, 27, 9, 0, tzinfo=TASHKENT))
+TODAY = Task(2, "Sut va non", datetime(2026, 9, 28, 20, 0, tzinfo=TASHKENT))
+UPCOMING = Task(3, "Shifokor", DUE)
+UNDATED = Task(4, "Kitob o'qish")
+DONE = Task(5, "Uchrashuv", done_at=datetime(2026, 9, 28, 10, 0, tzinfo=TASHKENT))
 
-def test_empty_list():
-    assert views.format_task_list([]) == uz.NO_TASKS
+
+def test_full_report_has_sections_counts_and_numbering():
+    text, shown = views.build_report([UPCOMING, UNDATED, TODAY, OVERDUE], [DONE], NOW)
+    assert text == (
+        "📋 <b>Vazifalar</b> — jami 5 ta: 1 ta bajarildi, 4 ta qoldi\n"
+        "\n"
+        "⚠️ <b>Muddati o'tgan (1)</b>\n"
+        "1. Onamga telefon — <i>27.09.2026 09:00</i>\n"
+        "\n"
+        "📅 <b>Bugun (1)</b>\n"
+        "2. Sut va non — <i>20:00</i>\n"
+        "\n"
+        "🗓 <b>Rejadagi (2)</b>\n"
+        "3. Shifokor — <i>29.09.2026 15:00</i>\n"
+        "4. Kitob o'qish — <i>muddatsiz</i>\n"
+        "\n"
+        "✅ <b>Bajarilgan — oxirgi 7 kun (1)</b>\n"
+        "• Uchrashuv — <i>28.09 da bajarildi</i>"
+    )
+    # Tugmalar raqami ro'yxatdagi raqam bilan bir xil bo'lishi uchun tartib muhim.
+    assert shown == [OVERDUE, TODAY, UPCOMING, UNDATED]
 
 
-def test_list_numbers_due_and_count():
-    text = views.format_task_list([Task(1, "Shifokor", DUE), Task(7, "Non olish")])
-    assert "(2 ta)" in text
-    assert "1. Shifokor — <i>29.09.2026 15:00</i>" in text
-    assert "2. Non olish — <i>muddatsiz</i>" in text
+def test_empty_report():
+    assert views.build_report([], [], NOW) == (uz.NO_TASKS, [])
+
+
+def test_only_done_tasks_still_shown():
+    text, shown = views.build_report([], [DONE], NOW)
+    assert "Bajarilgan" in text and shown == []
+
+
+def test_filter_done():
+    text, shown = views.build_report([OVERDUE, TODAY], [DONE], NOW, "done")
+    assert "Uchrashuv" in text
+    assert "Muddati o'tgan" not in text and "Bugun" not in text
+    assert shown == []
+
+
+def test_filter_today_includes_overdue():
+    text, shown = views.build_report([OVERDUE, TODAY, UPCOMING], [DONE], NOW, "today")
+    assert shown == [OVERDUE, TODAY]
+    assert "Rejadagi" not in text and "Bajarilgan" not in text
+
+
+def test_filter_open_hides_done():
+    text, shown = views.build_report([TODAY], [DONE], NOW, "open")
+    assert shown == [TODAY] and "Bajarilgan" not in text
+
+
+def test_filter_with_nothing_to_show():
+    assert views.build_report([TODAY], [], NOW, "overdue") == (uz.NO_TASKS_IN_FILTER, [])
 
 
 def test_title_is_html_escaped():
-    assert "&lt;b&gt;x&lt;/b&gt;" in views.format_task_list([Task(1, "<b>x</b>")])
+    text, _ = views.build_report([Task(1, "<b>x</b>")], [], NOW)
+    assert "&lt;b&gt;x&lt;/b&gt;" in text
+
+
+def test_daily_report():
+    text, shown = views.format_daily_report([UPCOMING, OVERDUE], NOW)
+    assert text.startswith("☀️ <b>Xayrli tong! Bugungi vazifalar (2 ta):</b>")
+    assert "Bajarilgan" not in text
+    assert shown == [OVERDUE, UPCOMING]
+    assert views.format_daily_report([], NOW) == (uz.DAILY_EMPTY, [])
+
+
+def test_order_open():
+    assert views.order_open([UNDATED, UPCOMING, TODAY, OVERDUE], NOW) == [OVERDUE, TODAY, UNDATED, UPCOMING]
 
 
 def test_due_converted_to_tashkent():
     utc = datetime(2026, 9, 29, 10, 0, tzinfo=timezone.utc)
     assert views.format_due(utc) == "29.09.2026 15:00"
-
-
-def test_daily_empty_and_full():
-    assert views.format_daily_report([]) == uz.DAILY_EMPTY
-    assert "Xayrli tong" in views.format_daily_report([Task(1, "Non")])
 
 
 def test_speech_text_has_no_html():

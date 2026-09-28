@@ -81,6 +81,11 @@ def test_parse_chat_without_reply_is_unknown():
     assert parse_intent('{"intent":"chat","reply":""}').kind == "unknown"
 
 
+def test_parse_list_filter():
+    assert parse_intent('{"intent":"list_tasks","filter":"done"}') == Intent("list_tasks", filter="done")
+    assert parse_intent('{"intent":"list_tasks","filter":"weird"}') == Intent("list_tasks")
+
+
 def test_parse_strips_think_block():
     raw = '<think>foydalanuvchi ro\'yxat so\'rayapti</think>\n{"intent":"list_tasks"}'
     assert parse_intent(raw) == Intent("list_tasks")

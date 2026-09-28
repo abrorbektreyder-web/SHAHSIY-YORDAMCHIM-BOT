@@ -149,7 +149,7 @@ Batafsil ish rejasi (har fayl kodi va testlari bilan): `docs/superpowers/plans/2
 |---|---|---|
 | F1 | Matnli vazifa qabul qilish | "Ertaga soat 15:00 shifokorga borish" → vazifa nomi va muddati to'g'ri ajratib olinadi |
 | F2 | Ovozli vazifa qabul qilish | Ovozli xabar matnga aylantirilib, F1 bilan bir xil natija beradi |
-| F3 | Vazifalar ro'yxatini ko'rsatish | "Ro'yxatni ko'rsat" so'roviga faqat tugallanmagan vazifalar, har biri tugma bilan chiqadi |
+| F3 | Vazifalar hisoboti | Umumiy son (jami / bajarildi / qoldi) va bo'limlar: ⚠️ Muddati o'tgan, 📅 Bugun, 🗓 Rejadagi, ✅ Bajarilgan (oxirgi 7 kun); ✅ tugmasi faqat bajarilmaganlarda. Qisman so'rash mumkin: "bajarilganlar", "bugungi", "muddati o'tganlar", "bajarilmaganlar" |
 | F4 | Vazifani bajarilgan deb belgilash | Tugma bosilganda vazifa `done: true` bo'ladi va ro'yxatdan chiqadi |
 | F5 | Kunlik avtomatik hisobot | Har kuni 08:00 (Asia/Tashkent) tugallanmagan vazifalar ro'yxati avtomatik yuboriladi |
 | F6 | Ovozli javob (qisqa) | Qisqa javoblar (vazifa qo'shildi, suhbat) faqat ovozli xabar sifatida yuboriladi; ovoz yaratilmasa — matn bilan (egasining qarori: "qisqa javoblar ovozli, uzun hisobotlar matn shaklida") |
@@ -285,4 +285,5 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 9 | Lokal sinov: haqiqiy bot bilan 1 ta matnli va 1 ta ovozli vazifa | ◐ qisman | Groq Qwen jonli sinovi: 4/4 o'zbekcha jumla to'g'ri tushunildi (0.4–1.1 s); bot `/start`ni qabul qilib, egasini tanidi. Javob yuborilmadi: lokal tarmoqdan `api.telegram.org` ga aloqa beqaror (ulanish 0.15 s – 15 s – timeout). Telegram bilan to'liq sinov Render'da (11-blok) o'tkaziladi |
 | 10 | GitHub'ga yuklash, Render'ga joylash, UptimeRobot | ☑ | GitHub (`SHAHSIY-YORDAMCHIM-BOT`) ✓; Render Web Service `shahsiy-yordamchim-bot.onrender.com` (Frankfurt, Free) — `/start` va ovozli vazifa ishladi, `/health` → ok ✓; UptimeRobot `vazifa-bot` monitori, 5 daqiqa, holati Up ✓ |
 | 10+ | Ovozni tushunishni yaxshilash: "🎤 Eshitdim" ko'rsatish, Whisper'ga o'zbekcha namuna (`prompt`), AI'ga eshitish xatolarini tuzatish ko'rsatmasi | ☑ | 3 ta yangi test; jonli sinov: 6/6 xatoli jumla to'g'ri tuzatildi ("Shfaqorga" → "Shifokorga", "telfon qilsh" → "telefon qilish") |
-| 11 | Yakuniy sinov: Render'da ishlashi va 08:00 hisobot | ☐ | — |
+| 10++ | Professional hisobot: bajarilgan / bajarilmagan / bugungi / muddati o'tgan bo'limlari va shular bo'yicha so'rash | ☑ | 11 ta yangi test (1 tasi Supabase'da); jonli sinov: 6/6 so'rov to'g'ri bo'limga ajratildi; umumiy 78 test o'tdi |
+| 11 | Yakuniy sinov: Render'da ishlashi va 08:00 hisobot | ◐ qisman | Render'da matn, ovoz ("🎤 Eshitdim") va vazifa qo'shish ishladi ✓; hisobot/✅ tugmasi va 08:00 hisobot — kutilmoqda |
