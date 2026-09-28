@@ -7,7 +7,15 @@ from datetime import datetime
 
 from bot import views
 from bot.ai_client import AIError, Intent
-from bot.booking import BookingRequest, booking_url, extract_contacts, format_booking
+from bot.booking import (
+    BOOKING_DOMAINS,
+    BookingRequest,
+    city_search_url,
+    extract_contacts,
+    find_booking_page,
+    format_booking,
+    hotel_page_url,
+)
 from bot.models import PLACE_CATEGORIES, Task
 from bot.search import SearchError
 from content import uz
@@ -70,16 +78,35 @@ async def run_search(intent: Intent, place: str | None, ai, searcher) -> Reply:
     return Reply("search", pages[0], more=pages[1] if len(pages) > 1 else "")
 
 
+async def _find_hotel_page(req: BookingRequest, searcher) -> str | None:
+    query = " ".join(p for p in (req.name_en, req.destination_en) if p)
+    try:
+        return find_booking_page(await searcher.search(query, "general", max_results=5, domains=BOOKING_DOMAINS))
+    except SearchError as exc:
+        log.warning("Booking sahifasini qidirishda xato: %s", exc)
+        return None
+
+
 async def run_booking(req: BookingRequest, searcher) -> Reply:
-    """Bron uchun tayyorlaydi: aloqa raqamlari va to'ldirilgan Booking.com havolasi. To'lov qilinmaydi."""
-    contacts: list[str] = []
-    if searcher is not None:
+    """Bron uchun tayyorlaydi: to'ldirilgan Booking.com havolasi va aloqa raqamlari. To'lov qilinmaydi."""
+    url, link = "", ""
+    if req.category == "hotel":
+        page = await _find_hotel_page(req, searcher) if req.name_en and searcher is not None else None
+        if page:
+            url, link = hotel_page_url(page, req), "page"
+        else:
+            url = city_search_url(req) or ""
+            link = "city" if url else ""
+
+    contacts: list[tuple[str, str]] = []
+    # Aniq nom bo'lmasa ("Dubaydagi mehmonxona"), qidiruv tasodifiy agentlik raqamini topadi.
+    if req.name_en and searcher is not None:
         query = " ".join(p for p in (req.name, req.city, "telefon raqami") if p)
         try:
             contacts = extract_contacts(await searcher.search(query, "general"))
         except SearchError as exc:
             log.warning("Aloqa raqamlarini qidirishda xato: %s", exc)
-    return Reply("booking", format_booking(req, contacts), url=booking_url(req) or "")
+    return Reply("booking", format_booking(req, contacts, link), url=url)
 
 
 async def handle_text(text: str, ai, store, now: datetime, searcher=None, history=()) -> Reply:

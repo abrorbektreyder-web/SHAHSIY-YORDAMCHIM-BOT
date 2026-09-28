@@ -25,9 +25,13 @@ class TavilyClient:
         self._http = http or httpx.AsyncClient(timeout=30)
         self._headers = {"Authorization": f"Bearer {api_key}"}
 
-    async def search(self, query: str, category: str, max_results: int = 6) -> list[SearchResult]:
+    async def search(
+        self, query: str, category: str, max_results: int = 6, domains: list[str] | None = None
+    ) -> list[SearchResult]:
         payload: dict = {"query": query, "search_depth": "basic", "max_results": max_results}
-        if category == "youtube":
+        if domains:
+            payload["include_domains"] = domains
+        elif category == "youtube":
             payload["include_domains"] = YOUTUBE_DOMAINS
         try:
             resp = await self._http.post(TAVILY_URL, json=payload, headers=self._headers)

@@ -43,7 +43,7 @@ class FakeSearcher:
         self.error = error
         self.calls = []
 
-    async def search(self, query, category, max_results=6):
+    async def search(self, query, category, max_results=6, domains=None):
         self.calls.append((query, category))
         if self.error:
             raise SearchError("down")
@@ -197,20 +197,55 @@ async def test_history_is_passed_to_ai():
 BOOK = Intent("book", booking=BookingRequest(
     name="CHINOR HOTEL", city="Andijon", category="hotel",
     checkin=datetime(2026, 10, 30).date(), guests=2, rooms=1, room_type="delux",
+    name_en="Chinor Hotel", destination_en="Andijan",
+))
+DUBAI = Intent("book", booking=BookingRequest(
+    name="Dubaydagi 5 yulduzli mehmonxona", city="Dubay", category="hotel",
+    checkin=datetime(2026, 10, 30).date(), guests=2, destination_en="Dubai", stars=5,
 ))
 
 
-async def test_book_hotel_finds_contacts_and_link():
-    searcher = FakeSearcher(results=[SearchResult("Chinor", "https://chinor.uz", "Tel: +998 74 223 45 67")])
+class RoutingSearcher(FakeSearcher):
+    """booking.com'ga cheklangan qidiruv — mehmonxona sahifasi, qolgani — aloqa raqamlari."""
+
+    def __init__(self, page=True):
+        super().__init__()
+        self.page = page
+
+    async def search(self, query, category, max_results=6, domains=None):
+        self.calls.append((query, category, domains))
+        if domains == ["booking.com"]:
+            url = "https://www.booking.com/hotel/uz/chinor.html" if self.page else "https://www.booking.com/city/uz/andijan.html"
+            return [SearchResult("CHINOR HOTEL", url, "")]
+        return [SearchResult("Chinor", "https://chinor.uz", "Tel: +998 74 223 45 67")]
+
+
+async def test_book_specific_hotel_opens_its_page_and_finds_contacts():
+    searcher = RoutingSearcher()
     reply = await handle_text("Chinor hotel bron qil", FakeAI(BOOK), FakeStore(), NOW, searcher)
     assert reply.kind == "booking"
-    assert reply.url.startswith("https://www.booking.com/searchresults.html?")
+    assert reply.url.startswith("https://www.booking.com/hotel/uz/chinor.html?checkin=2026-10-30")
     assert "📞 +998 74 223 45 67 — chinor.uz" in reply.text
-    assert searcher.calls == [("CHINOR HOTEL Andijon telefon raqami", "general")]
+    assert ("Chinor Hotel Andijan", "general", ["booking.com"]) in searcher.calls
+    assert ("CHINOR HOTEL Andijon telefon raqami", "general", None) in searcher.calls
+
+
+async def test_book_hotel_page_not_found_falls_back_to_city_list():
+    reply = await handle_text("bron qil", FakeAI(BOOK), FakeStore(), NOW, RoutingSearcher(page=False))
+    assert reply.url.startswith("https://www.booking.com/searchresults.html?ss=Andijan")
+    assert "sahifasi topilmadi" in reply.text
+
+
+async def test_book_generic_hotel_uses_city_list_without_contact_search():
+    searcher = RoutingSearcher()
+    reply = await handle_text("Dubayda 5 yulduzli mehmonxona bron qil", FakeAI(DUBAI), FakeStore(), NOW, searcher)
+    assert "ss=Dubai" in reply.url and "nflt=class%3D5" in reply.url
+    assert searcher.calls == []  # aniq nom yo'q — tasodifiy raqam qidirilmaydi
+    assert "📞" not in reply.text
 
 
 async def test_book_without_searcher_or_on_error_still_prepares_link():
     reply = await handle_text("bron qil", FakeAI(BOOK), FakeStore(), NOW)
-    assert reply.kind == "booking" and reply.url and "topilmadi" in reply.text
+    assert reply.kind == "booking" and "ss=Andijan" in reply.url
     reply = await handle_text("bron qil", FakeAI(BOOK), FakeStore(), NOW, FakeSearcher(error=True))
-    assert reply.kind == "booking" and "topilmadi" in reply.text
+    assert reply.kind == "booking" and "ss=Andijan" in reply.url

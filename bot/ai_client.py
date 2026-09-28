@@ -115,6 +115,9 @@ def parse_intent(raw: str) -> Intent:
             rooms=_positive_int(data.get("rooms")),
             room_type=_text(data.get("room_type")),
             time=_text(data.get("time")),
+            name_en=_text(data.get("name_en")),
+            destination_en=_text(data.get("destination_en")),
+            stars=_stars(data.get("stars")),
         ))
     return Intent(kind)
 
@@ -124,6 +127,10 @@ def _parse_date(raw: object) -> date | None:
         return date.fromisoformat(raw) if isinstance(raw, str) else None
     except ValueError:
         return None
+
+
+def _stars(raw: object) -> int | None:
+    return raw if isinstance(raw, int) and not isinstance(raw, bool) and 1 <= raw <= 5 else None
 
 
 def _positive_int(raw: object) -> int:

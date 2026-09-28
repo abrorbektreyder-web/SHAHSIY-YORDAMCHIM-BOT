@@ -61,3 +61,15 @@ async def test_network_error_raises():
 async def test_bad_json_raises():
     with pytest.raises(SearchError):
         await client_with(lambda r: httpx.Response(200, text="<html>")).search("x", "general")
+
+
+async def test_search_can_be_limited_to_domains():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"results": []})
+
+    await client_with(handler).search("Chinor Hotel Andijan", "general", max_results=5, domains=["booking.com"])
+    assert seen["body"]["include_domains"] == ["booking.com"]
+    assert seen["body"]["max_results"] == 5

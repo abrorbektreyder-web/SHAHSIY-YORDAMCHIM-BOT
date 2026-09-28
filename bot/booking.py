@@ -11,14 +11,16 @@ from bot.search import SearchResult
 from content import uz
 
 BOOKING_SEARCH_URL = "https://www.booking.com/searchresults.html"
+BOOKING_DOMAINS = ["booking.com"]
 CONTACT_LIMIT = 4
 _PHONE = re.compile(r"\+?998[\s\-().]*(\d{2})[\s\-().]*(\d{3})[\s\-.]*(\d{2})[\s\-.]*(\d{2})(?!\d)")
 _TELEGRAM = re.compile(r"(?:https?://)?t\.me/([A-Za-z0-9_]{5,32})")
+_HOTEL_PAGE = re.compile(r"^https://www\.booking\.com/hotel/[a-z]{2}/[a-z0-9\-]+(?:\.[a-z\-]+)?\.html")
 
 
 @dataclass(frozen=True)
 class BookingRequest:
-    name: str
+    name: str  # foydalanuvchiga ko'rsatiladigan nom (o'zbekcha bo'lishi mumkin)
     city: str = ""
     category: str = "hotel"  # "hotel" | "restaurant"
     checkin: date | None = None  # restoran uchun — sana
@@ -27,6 +29,9 @@ class BookingRequest:
     rooms: int = 1
     room_type: str = ""
     time: str = ""  # restoran uchun, "19:00"
+    name_en: str = ""  # aniq joy nomi lotincha/inglizcha; bo'sh — aniq nom aytilmagan
+    destination_en: str = ""  # shahar inglizcha ("Dubai", "Andijan") — Booking faqat shuni taniydi
+    stars: int | None = None
 
     @property
     def nights_end(self) -> date | None:
@@ -41,15 +46,37 @@ def _d(value: date) -> str:
     return value.strftime("%d.%m.%Y")
 
 
-def booking_url(req: BookingRequest) -> str | None:
-    """Mehmonxona uchun sana, kishi va xona oldindan to'ldirilgan Booking.com qidiruv havolasi."""
-    if req.category != "hotel":
-        return None
-    params = {"ss": " ".join(p for p in (req.name, req.city) if p)}
+def _stay_params(req: BookingRequest) -> dict:
+    params: dict = {}
     if req.checkin:
         params.update(checkin=req.checkin.isoformat(), checkout=req.nights_end.isoformat())
     params.update(group_adults=req.guests, no_rooms=req.rooms, group_children=0)
+    return params
+
+
+def city_search_url(req: BookingRequest) -> str | None:
+    """Shahar bo'yicha ro'yxat. Booking `ss`da faqat joy nomini taniydi — tavsif yoki
+    mehmonxona nomi "0 variant" beradi va sanalarni tashlab yuboradi."""
+    destination = req.destination_en or req.city
+    if not destination:
+        return None
+    params = {"ss": destination, **_stay_params(req)}
+    if req.stars in (1, 2, 3, 4, 5):
+        params["nflt"] = f"class={req.stars}"
     return f"{BOOKING_SEARCH_URL}?{urlencode(params)}"
+
+
+def find_booking_page(results: list[SearchResult]) -> str | None:
+    """Qidiruv natijalaridan mehmonxonaning Booking sahifasi (`/hotel/<davlat>/<nom>.html`)."""
+    for result in results:
+        match = _HOTEL_PAGE.match(result.url)
+        if match:
+            return match.group(0)
+    return None
+
+
+def hotel_page_url(page: str, req: BookingRequest) -> str:
+    return f"{page}?{urlencode(_stay_params(req))}"
 
 
 def _domain(url: str) -> str:
@@ -85,20 +112,22 @@ def call_script(req: BookingRequest) -> str:
     return uz.CALL_SCRIPT_HOTEL.format(period=period, guests=req.guests, rooms=req.rooms, room=room)
 
 
-def format_booking(req: BookingRequest, contacts: list[tuple[str, str]]) -> str:
+def format_booking(req: BookingRequest, contacts: list[tuple[str, str]], link: str) -> str:
+    """link: "page" — mehmonxona sahifasi, "city" — shahar ro'yxati, "" — tugma yo'q."""
     icon = "🍽" if req.category == "restaurant" else "🏨"
     title = escape(", ".join(p for p in (req.name, req.city) if p), quote=False)
     details = []
     if req.category == "restaurant":
-        if req.checkin or req.time:
-            details.append("📅 " + " ".join(p for p in (_d(req.checkin) if req.checkin else "", req.time) if p))
+        when = " ".join(p for p in (_d(req.checkin) if req.checkin else "", req.time) if p)
+        details.append(f"📅 {when}" if when else uz.BOOKING_NO_DATE)
         details.append(f"👥 {req.guests} kishi")
     else:
-        if req.checkin:
-            details.append(f"📅 {_d(req.checkin)} → {_d(req.nights_end)}")
+        details.append(f"📅 {_d(req.checkin)} → {_d(req.nights_end)}" if req.checkin else uz.BOOKING_NO_DATE)
         details.append(f"👥 {req.guests} kishi")
         room = f"🛏 {req.rooms} xona"
         details.append(f"{room} ({escape(req.room_type, quote=False)})" if req.room_type else room)
+        if req.stars in (1, 2, 3, 4, 5):
+            details.append(f"{req.stars}⭐")
 
     lines = [uz.BOOKING_HEADER.format(icon=icon, title=title), " · ".join(details), ""]
     if contacts:
@@ -106,9 +135,17 @@ def format_booking(req: BookingRequest, contacts: list[tuple[str, str]]) -> str:
             f"{'💬' if contact.startswith('@') else '📞'} {contact} — {escape(source, quote=False)}"
             for contact, source in contacts
         ]
-        lines.append(uz.BOOKING_CHECK_SOURCE)
+        lines += [uz.BOOKING_CHECK_SOURCE, ""]
+    elif req.name_en:
+        lines += [uz.BOOKING_NO_CONTACTS, ""]
+    lines += [uz.BOOKING_SCRIPT_LABEL, f"<i>{escape(call_script(req), quote=False)}</i>", ""]
+    if req.category == "restaurant":
+        lines.append(uz.BOOKING_NOTE_RESTAURANT)
+    elif link == "page":
+        lines.append(uz.BOOKING_NOTE_PAGE)
+    elif link == "city":
+        not_found = uz.BOOKING_PAGE_NOT_FOUND if req.name_en else ""
+        lines.append(not_found + uz.BOOKING_NOTE_CITY)
     else:
-        lines.append(uz.BOOKING_NO_CONTACTS)
-    lines += ["", uz.BOOKING_SCRIPT_LABEL, f"<i>{escape(call_script(req), quote=False)}</i>", ""]
-    lines.append(uz.BOOKING_NOTE_RESTAURANT if req.category == "restaurant" else uz.BOOKING_NOTE_HOTEL)
+        lines.append(uz.BOOKING_NOTE_NO_LINK)
     return "\n".join(lines)

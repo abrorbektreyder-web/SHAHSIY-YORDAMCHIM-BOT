@@ -388,12 +388,22 @@ async def test_prompts_never_deny_search_and_handle_cheapest():
 def test_parse_book_intent():
     raw = (
         '{"intent":"book","category":"hotel","title":"CHINOR HOTEL","place":"Andijon",'
-        '"checkin":"2026-10-30","checkout":null,"guests":2,"rooms":1,"room_type":"delux"}'
+        '"checkin":"2026-10-30","checkout":null,"guests":2,"rooms":1,"room_type":"delux",'
+        '"name_en":"Chinor Hotel","destination_en":"Andijan","stars":null}'
     )
     assert parse_intent(raw) == Intent("book", booking=BookingRequest(
         name="CHINOR HOTEL", city="Andijon", category="hotel",
         checkin=date(2026, 10, 30), checkout=None, guests=2, rooms=1, room_type="delux",
+        name_en="Chinor Hotel", destination_en="Andijan", stars=None,
     ))
+
+
+def test_parse_book_generic_hotel_with_stars():
+    raw = ('{"intent":"book","category":"hotel","title":"Dubaydagi 5 yulduzli mehmonxona","place":"Dubay",'
+           '"name_en":"","destination_en":"Dubai","stars":5}')
+    booking = parse_intent(raw).booking
+    assert booking.name_en == "" and booking.destination_en == "Dubai" and booking.stars == 5
+    assert parse_intent(raw.replace('"stars":5', '"stars":9')).booking.stars is None
 
 
 def test_parse_book_defaults_and_restaurant():
@@ -414,3 +424,5 @@ async def test_system_prompt_describes_booking():
 
     await groq_client_with(handler).understand("x", NOW)
     assert '"book"' in seen["system"] and "never pays" in seen["system"]
+    assert "destination_en" in seen["system"] and "never guess dates" in seen["system"]
+    assert "never pick one from the bot's results" in seen["system"]
