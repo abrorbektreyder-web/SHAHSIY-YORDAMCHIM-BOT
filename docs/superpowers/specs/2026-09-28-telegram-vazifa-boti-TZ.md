@@ -287,3 +287,19 @@ Har bir blok tugaganda va uning testlari o'tganda ☐ → ☑ qilib belgilanadi.
 | 10+ | Ovozni tushunishni yaxshilash: "🎤 Eshitdim" ko'rsatish, Whisper'ga o'zbekcha namuna (`prompt`), AI'ga eshitish xatolarini tuzatish ko'rsatmasi | ☑ | 3 ta yangi test; jonli sinov: 6/6 xatoli jumla to'g'ri tuzatildi ("Shfaqorga" → "Shifokorga", "telfon qilsh" → "telefon qilish") |
 | 10++ | Professional hisobot: bajarilgan / bajarilmagan / bugungi / muddati o'tgan bo'limlari va shular bo'yicha so'rash | ☑ | 11 ta yangi test (1 tasi Supabase'da); jonli sinov: 6/6 so'rov to'g'ri bo'limga ajratildi; umumiy 78 test o'tdi |
 | 11 | Yakuniy sinov: Render'da ishlashi va 08:00 hisobot | ◐ qisman | Render'da matn, ovoz ("🎤 Eshitdim") va vazifa qo'shish ishladi ✓; hisobot/✅ tugmasi va 08:00 hisobot — kutilmoqda |
+
+---
+
+## 13. 2-BOSQICH: INTERNETDAN QIDIRISH — BAJARILISH HOLATI
+
+Batafsil reja: `docs/superpowers/specs/2026-09-28-bosqich2-qidiruv-design.md`. Qidiruv xizmati — Tavily (bepul, oyiga 1000 qidiruv), shahar aniqlash — OpenStreetMap Nominatim.
+
+| Blok | Nima qilinadi | Holat | Tekshiruv natijasi |
+|---|---|---|---|
+| 2.1 | Tavily qidiruv moduli (`search.py`) va sozlama (`TAVILY_API_KEY`) | ☐ | — |
+| 2.2 | Joylashuvdan shahar aniqlash (`geo.py`) | ☐ | — |
+| 2.3 | AI: qidiruv niyatini aniqlash va natijalarni saralash | ☐ | — |
+| 2.4 | Natijalar ko'rinishi (3 ta + "Yana ko'rsat") | ☐ | — |
+| 2.5 | Bot mantiqi: shahar so'rash, qidiruv, xatolar | ☐ | — |
+| 2.6 | Telegram: 📍 tugma, joylashuv, "Yana ko'rsat", ishga tushirish | ☐ | — |
+| 2.7 | Jonli sinov (har yo'nalishdan 1 tadan) va Render'ga chiqarish | ☐ | — |
